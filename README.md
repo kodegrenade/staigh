@@ -66,9 +66,9 @@ Under the "Data & Backup" tab, you can export your entire tracking history and s
 
 ## Contributing
 
-We welcome contributions to Staigh. Please read our [Contributing Guide](https://github.com/kodegrenade/staigh/CONTRIBUTING.md) to understand the codebase architecture, setup instructions, and coding standards.
+We welcome contributions to Staigh. Please read our [Contributing Guide](https://github.com/kodegrenade/staigh/blob/main/CONTRIBUTING.md) to understand the codebase architecture, setup instructions, and coding standards.
 
 ## License
 
-Staigh is open-source software licensed under the MIT License. See the [LICENSE](https://github.com/kodegrenade/staigh/LICENSE) file for the full license text.
+Staigh is open-source software licensed under the MIT License. See the [LICENSE](https://github.com/kodegrenade/staigh/blob/main/LICENSE) file for the full license text.
 
