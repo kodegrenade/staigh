@@ -189,7 +189,7 @@ function checkDailyLimit(domain, totalSeconds) {
     notifiedLimits[limitKey] = true;
     chrome.notifications.create({
       type: 'basic',
-      iconUrl: 'icon.png',
+      iconUrl: 'icon128.png',
       title: 'Daily Site Limit Reached',
       message: `You have spent ${limitMinutes} minute(s) on ${domain} today.`,
       priority: 2,
