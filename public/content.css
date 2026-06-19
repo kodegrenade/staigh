@@ -1,0 +1,164 @@
+/* Isolated Styles for Staigh Floating Countdown Widget */
+
+:host {
+  all: initial; /* Resets all inherited host page properties */
+  display: block;
+}
+
+.staigh-widget-container {
+  /* Carbon default variables */
+  --bg-widget: #18181b;
+  --border-widget: #27272a;
+  --text-widget: #fafafa;
+  --text-muted-widget: #a1a1aa;
+  --purple-accent: #a78bfa;
+  --danger-color: #ef4444;
+  --danger-bg: rgba(239, 68, 68, 0.08);
+  --border-danger: #f87171;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  position: fixed;
+  z-index: 2147483647; /* Maximum possible z-index to overlay everything */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--bg-widget);
+  border: 1px solid var(--border-widget);
+  border-radius: 6px;
+  padding: 6px 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  font-family: var(--font-sans);
+  color: var(--text-widget);
+  user-select: none;
+  pointer-events: auto;
+  transition: border-color 0.3s, background-color 0.3s, color 0.3s;
+}
+
+/* Light Theme Variables */
+.staigh-widget-container.light-theme {
+  --bg-widget: #ffffff;
+  --border-widget: #e4e4e7;
+  --text-widget: #09090b;
+  --text-muted-widget: #71717a;
+  --purple-accent: #7c3aed;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Drag Handle Component */
+.staigh-widget-drag-handle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  width: 8px;
+  cursor: grab;
+  padding: 4px 2px;
+  opacity: 0.4;
+  transition: opacity 0.15s;
+}
+
+.staigh-widget-drag-handle:hover {
+  opacity: 0.8;
+}
+
+.staigh-widget-drag-handle:active {
+  cursor: grabbing;
+}
+
+.staigh-widget-dot {
+  width: 2px;
+  height: 2px;
+  background-color: var(--text-widget);
+  border-radius: 50%;
+}
+
+/* Clock Display Area */
+.staigh-widget-display {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.staigh-widget-label {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted-widget);
+  line-height: 1;
+  margin-bottom: 2px;
+  font-weight: 600;
+}
+
+.staigh-widget-timer {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+/* Warning State (<5 mins remaining) */
+.staigh-widget-container.warning-time {
+  border-color: var(--border-danger);
+  color: var(--danger-color);
+}
+
+.staigh-widget-container.warning-time .staigh-widget-label {
+  color: var(--danger-color);
+}
+
+/* Expired / Limit Reached State */
+.staigh-widget-container.expired-time {
+  border-color: var(--danger-color);
+  background-color: var(--danger-bg);
+  color: var(--danger-color);
+  animation: pulse-border 1.5s infinite alternate;
+}
+
+.staigh-widget-container.expired-time .staigh-widget-label {
+  color: var(--danger-color);
+}
+
+.staigh-widget-container.expired-time .staigh-widget-timer {
+  font-size: 12px;
+}
+
+/* Pause State overlay indicator */
+.staigh-widget-container.paused-state {
+  opacity: 0.6;
+}
+
+.staigh-widget-container.paused-state .staigh-widget-timer {
+  color: var(--text-muted-widget);
+}
+
+/* Mini Close Button */
+.staigh-widget-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  cursor: pointer;
+  opacity: 0.3;
+  transition: opacity 0.15s, background-color 0.15s;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: bold;
+}
+
+.staigh-widget-close:hover {
+  opacity: 0.9;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.light-theme .staigh-widget-close:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Keyframes */
+@keyframes pulse-border {
+  0% { box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.5); }
+  100% { box-shadow: 0 4px 16px rgba(239, 68, 68, 0.35); border-color: rgba(239, 68, 68, 1); }
+}

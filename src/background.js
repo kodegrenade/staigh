@@ -134,6 +134,25 @@ function stopTracking() {
   lastCheckpoint = null;
 }
 
+function broadcastTimeSync(domain, totalSeconds) {
+  if (typeof chrome === 'undefined' || !chrome.tabs) return;
+  chrome.tabs.query({}, (tabs) => {
+    tabs.forEach((tab) => {
+      try {
+        const tabDomain = getCleanDomain(tab.url);
+        if (tabDomain === domain) {
+          chrome.tabs.sendMessage(tab.id, {
+            action: 'syncTime',
+            secondsToday: totalSeconds,
+          });
+        }
+      } catch (e) {
+        // Ignored for settings/extension pages
+      }
+    });
+  });
+}
+
 async function flushCurrentTime() {
   if (!activeTarget || !lastCheckpoint) return;
 
@@ -171,6 +190,9 @@ async function flushCurrentTime() {
   } else {
     totalDomainSeconds = todayTimes[activeTarget];
   }
+
+  // Broadcast sync updates to open tabs on this domain
+  broadcastTimeSync(activeDomain, totalDomainSeconds);
 
   // Check limit threshold
   checkDailyLimit(activeDomain, totalDomainSeconds);
@@ -258,6 +280,21 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 chrome.storage.onChanged.addListener(async (changes, namespace) => {
   if (namespace === 'local' && changes.settings) {
     settings = changes.settings.newValue;
+    
+    // Broadcast setting changes to all tabs to update floating countdown widgets
+    chrome.tabs.query({}, (tabs) => {
+      tabs.forEach((tab) => {
+        try {
+          chrome.tabs.sendMessage(tab.id, {
+            action: 'settingsChanged',
+            settings,
+          });
+        } catch (e) {
+          // Ignored
+        }
+      });
+    });
+
     // If settings changed, check if the current active tab is now blacklisted
     const activeTab = await getActiveTab();
     if (activeTab) {
@@ -269,6 +306,27 @@ chrome.storage.onChanged.addListener(async (changes, namespace) => {
       }
     }
   }
+});
+
+// Listen for messaging connections from Content Scripts
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'checkLimit') {
+    const { domain } = request;
+    const limitMinutes = settings.limits?.[domain];
+    if (limitMinutes) {
+      const secondsToday = todayTimes[domain] || 0;
+      sendResponse({
+        hasLimit: true,
+        limitMinutes,
+        secondsToday,
+        isPaused: settings.isPaused,
+        theme: settings.theme || 'dark',
+      });
+    } else {
+      sendResponse({ hasLimit: false });
+    }
+  }
+  return true; // Keeps messaging port open for async response
 });
 
 // Initialize on background service startup
