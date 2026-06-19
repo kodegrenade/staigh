@@ -40,6 +40,17 @@ import './options.css';
 
 const CHART_COLORS = ['#a78bfa', '#818cf8', '#60a5fa', '#34d399', '#fbbf24', '#f472b6', '#2dd4bf'];
 
+function formatLimitDuration(mins) {
+  const hours = Math.floor(mins / 60);
+  const minutes = mins % 60;
+  if (hours > 0 && minutes > 0) {
+    return `${hours}h ${minutes}m`;
+  } else if (hours > 0) {
+    return `${hours}h`;
+  }
+  return `${minutes}m`;
+}
+
 function Options() {
   const [activeTab, setActiveTab] = useState('analytics');
   const [dateRange, setDateRange] = useState('7days'); // 'today', 'yesterday', '7days', '30days'
@@ -55,12 +66,14 @@ function Options() {
   // Settings Forms State
   const [newBlacklistDomain, setNewBlacklistDomain] = useState('');
   const [newLimitDomain, setNewLimitDomain] = useState('');
+  const [newLimitHours, setNewLimitHours] = useState('');
   const [newLimitMinutes, setNewLimitMinutes] = useState('');
   const [newFullUrlDomain, setNewFullUrlDomain] = useState('');
   const [settingsSearch, setSettingsSearch] = useState('');
 
   // Status/Alerts State
   const [importStatus, setImportStatus] = useState({ type: '', message: '' });
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // Load configuration and data
   useEffect(() => {
@@ -241,15 +254,19 @@ function Options() {
   }
 
   async function handleAddLimit() {
-    if (!newLimitDomain.trim() || !newLimitMinutes) return;
+    if (!newLimitDomain.trim()) return;
     const domain = newLimitDomain.trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, '');
-    const minutes = parseInt(newLimitMinutes, 10);
-    if (isNaN(minutes) || minutes <= 0) return;
+    const hours = parseInt(newLimitHours, 10) || 0;
+    const minutes = parseInt(newLimitMinutes, 10) || 0;
+    const totalMinutes = (hours * 60) + minutes;
+    
+    if (totalMinutes <= 0) return;
 
-    const updatedLimits = { ...settings.limits, [domain]: minutes };
+    const updatedLimits = { ...settings.limits, [domain]: totalMinutes };
     const updated = await updateSettings({ limits: updatedLimits });
     setSettings(updated);
     setNewLimitDomain('');
+    setNewLimitHours('');
     setNewLimitMinutes('');
   }
 
@@ -323,12 +340,18 @@ function Options() {
     reader.readAsText(file);
   }
 
-  async function handleClearData() {
-    if (window.confirm('WARNING: This will permanently delete all tracking history. Are you sure?')) {
-      await clearAllLogs();
-      await loadLogs();
-      alert('Tracking history cleared.');
-    }
+  function handleClearData() {
+    setShowClearConfirm(true);
+  }
+
+  async function handleConfirmClear() {
+    setShowClearConfirm(false);
+    await clearAllLogs();
+    await loadLogs();
+    setImportStatus({ type: 'success', message: 'All tracking history has been successfully cleared.' });
+    setTimeout(() => {
+      setImportStatus({ type: '', message: '' });
+    }, 4000);
   }
 
   // --- UI Format Helpers ---
@@ -678,13 +701,26 @@ function Options() {
                   placeholder="Domain (e.g. youtube.com)"
                   value={newLimitDomain}
                   onChange={(e) => setNewLimitDomain(e.target.value)}
+                  style={{ flexGrow: 3 }}
                 />
                 <input
                   type="number"
-                  placeholder="Limit (minutes)"
+                  min="0"
+                  max="23"
+                  placeholder="Hours"
+                  value={newLimitHours}
+                  onChange={(e) => setNewLimitHours(e.target.value)}
+                  style={{ flexGrow: 1, maxWidth: '100px' }}
+                />
+                <input
+                  type="number"
+                  min="0"
+                  max="59"
+                  placeholder="Mins"
                   value={newLimitMinutes}
                   onChange={(e) => setNewLimitMinutes(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddLimit()}
+                  style={{ flexGrow: 1, maxWidth: '100px' }}
                 />
                 <button className="btn-add" onClick={handleAddLimit}>
                   <Plus size={16} />
@@ -706,7 +742,7 @@ function Options() {
                         <span>{domain}</span>
                       </div>
                       <div className="limit-meta">
-                        <span className="limit-value">{minutes} mins / day</span>
+                        <span className="limit-value">{formatLimitDuration(minutes)} / day</span>
                         <button className="btn-delete" onClick={() => handleRemoveLimit(domain)}>
                           <Trash2 size={14} />
                         </button>
@@ -837,6 +873,27 @@ function Options() {
           </div>
         )}
       </main>
+
+      {/* Custom Confirmation Modal */}
+      {showClearConfirm && (
+        <div className="modal-overlay" onClick={() => setShowClearConfirm(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-icon-wrapper">
+              <AlertTriangle size={24} className="modal-warning-icon" />
+            </div>
+            <h2>Delete Tracking History?</h2>
+            <p>This action is permanent and cannot be undone. All website time logs will be deleted forever.</p>
+            <div className="modal-actions">
+              <button className="btn-modal-cancel" onClick={() => setShowClearConfirm(false)}>
+                Cancel
+              </button>
+              <button className="btn-modal-confirm" onClick={handleConfirmClear}>
+                Reset Everything
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
