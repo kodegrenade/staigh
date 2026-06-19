@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Staigh",
+  "version": "1.0.0",
+  "description": "Tracks how long you spend on websites with detailed glassmorphic charts, blocklists, and daily limits.",
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "idle",
+    "storage",
+    "unlimitedStorage",
+    "notifications"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "index.html",
+    "default_title": "Staigh",
+    "default_icon": "icon.png"
+  },
+  "options_page": "options.html"
+}
