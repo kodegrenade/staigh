@@ -504,11 +504,33 @@ body, html {
   font-size: 13px;
   outline: none;
   font-family: var(--font-sans);
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input-group input[type="number"] {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-weight: 600;
 }
 
 .input-group input:focus {
-  border-color: var(--border-focus);
+  border-color: var(--purple-accent);
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
+}
+
+[data-theme='light'] .input-group input:focus {
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.1);
+}
+
+/* Hide Spinners in Chrome/Safari/Firefox */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 .btn-add {
