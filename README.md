@@ -63,3 +63,12 @@ If you do not want to record time spent on local development environments or sea
 
 ### Manage Data
 Under the "Data & Backup" tab, you can export your entire tracking history and settings to a JSON file. If you ever want to start fresh, you can use the factory reset option, which prompts you with a custom confirmation screen before permanently wiping your IndexedDB store.
+
+## Contributing
+
+We welcome contributions to Staigh. Please read our [Contributing Guide](https://github.com/kodegrenade/staigh/CONTRIBUTING.md) to understand the codebase architecture, setup instructions, and coding standards.
+
+## License
+
+Staigh is open-source software licensed under the MIT License. See the [LICENSE](https://github.com/kodegrenade/staigh/LICENSE) file for the full license text.
+
