@@ -15,6 +15,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch all tags
+        run: git fetch --tags --force
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -33,11 +38,26 @@ jobs:
           cd dist
           zip -r ../staigh-extension.zip .
 
+      - name: Generate changelog
+        id: generate_changelog
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          tags_count=$(git tag -l | wc -l)
+          if [ "$tags_count" -le 1 ]; then
+            git log --pretty=format:"* %h %s" --abbrev-commit > changelog.txt
+          else
+            previous_tag=$(git tag --sort=-creatordate | head -n 2 | tail -n 1)
+            git log --pretty=format:"* %h %s" --abbrev-commit $previous_tag..$REF_NAME > changelog.txt
+          fi
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          name: Staigh Release ${{ github.ref_name }}
+          body_path: changelog.txt
           files: staigh-extension.zip
-          draft: true
+          draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
