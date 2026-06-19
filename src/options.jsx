@@ -70,6 +70,11 @@ function Options() {
   const [newLimitMinutes, setNewLimitMinutes] = useState('');
   const [newFullUrlDomain, setNewFullUrlDomain] = useState('');
   const [settingsSearch, setSettingsSearch] = useState('');
+  
+  // Analytics Table State
+  const [analyticsSearch, setAnalyticsSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Status/Alerts State
   const [importStatus, setImportStatus] = useState({ type: '', message: '' });
@@ -180,6 +185,26 @@ function Options() {
       })
       .sort((a, b) => b.seconds - a.seconds);
   }, [logs, settings.fullUrlTrackingDomains]);
+
+  // Filter logs based on search input
+  const filteredSites = React.useMemo(() => {
+    if (!analyticsSearch.trim()) return siteBreakdown;
+    const searchLower = analyticsSearch.toLowerCase();
+    return siteBreakdown.filter((site) => site.target.includes(searchLower));
+  }, [siteBreakdown, analyticsSearch]);
+
+  // Paginated site breakdown slices
+  const paginatedSites = React.useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredSites.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredSites, currentPage]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredSites.length / itemsPerPage));
+
+  // Reset pagination on filter or date range change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [analyticsSearch, dateRange]);
 
   // Aggregate time spent per day for the daily trend chart
   const dailyTrendData = React.useMemo(() => {
@@ -574,48 +599,97 @@ function Options() {
 
             {/* Sites list grid */}
             <div className="table-card">
-              <h3>Detailed breakdown</h3>
-              {siteBreakdown.length === 0 ? (
-                <div className="empty-table">No tracking details recorded.</div>
-              ) : (
-                <div className="table-responsive">
-                  <table className="analytics-table">
-                    <thead>
-                      <tr>
-                        <th>Website</th>
-                        <th>Type</th>
-                        <th className="align-right">Time Spent</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {siteBreakdown.map((site) => (
-                        <tr key={site.target}>
-                          <td>
-                            <div className="table-site-name">
-                              <img
-                                src={getFaviconUrl(site.domain)}
-                                onError={(e) => {
-                                  e.target.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="gray" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>';
-                                }}
-                                alt=""
-                                className="table-favicon"
-                              />
-                              <span className="domain-txt" title={site.target}>
-                                {site.target}
-                              </span>
-                            </div>
-                          </td>
-                          <td>
-                            <span className={`badge ${site.isUrl ? 'purple' : 'gray'}`}>
-                              {site.isUrl ? 'Path Detail' : 'Domain aggregate'}
-                            </span>
-                          </td>
-                          <td className="align-right font-bold">{formatDuration(site.seconds)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              <div className="table-card-header">
+                <h3>Detailed breakdown</h3>
+                {siteBreakdown.length > 0 && (
+                  <div className="search-bar table-search">
+                    <Search size={14} />
+                    <input
+                      type="text"
+                      placeholder="Search website logs..."
+                      value={analyticsSearch}
+                      onChange={(e) => setAnalyticsSearch(e.target.value)}
+                    />
+                    {analyticsSearch && (
+                      <button className="search-clear-btn" onClick={() => setAnalyticsSearch('')}>×</button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {filteredSites.length === 0 ? (
+                <div className="empty-table">
+                  {siteBreakdown.length === 0 ? 'No tracking details recorded.' : 'No matching websites found.'}
                 </div>
+              ) : (
+                <>
+                  <div className="table-responsive">
+                    <table className="analytics-table">
+                      <thead>
+                        <tr>
+                          <th>Website</th>
+                          <th>Type</th>
+                          <th className="align-right">Time Spent</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginatedSites.map((site) => (
+                          <tr key={site.target}>
+                            <td>
+                              <div className="table-site-name">
+                                <img
+                                  src={getFaviconUrl(site.domain)}
+                                  onError={(e) => {
+                                    e.target.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="gray" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>';
+                                  }}
+                                  alt=""
+                                  className="table-favicon"
+                                />
+                                <span className="domain-txt" title={site.target}>
+                                  {site.target}
+                                </span>
+                              </div>
+                            </td>
+                            <td>
+                              <span className={`badge ${site.isUrl ? 'purple' : 'gray'}`}>
+                                {site.isUrl ? 'Path Detail' : 'Domain aggregate'}
+                              </span>
+                            </td>
+                            <td className="align-right font-bold">{formatDuration(site.seconds)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="table-pagination">
+                      <span className="pagination-info">
+                        Showing {((currentPage - 1) * itemsPerPage) + 1}–{Math.min(currentPage * itemsPerPage, filteredSites.length)} of {filteredSites.length} entries
+                      </span>
+                      <div className="pagination-buttons">
+                        <button
+                          className="btn-pagination"
+                          disabled={currentPage === 1}
+                          onClick={() => setCurrentPage((p) => p - 1)}
+                        >
+                          Prev
+                        </button>
+                        <span className="pagination-current-page">
+                          {currentPage} / {totalPages}
+                        </span>
+                        <button
+                          className="btn-pagination"
+                          disabled={currentPage === totalPages}
+                          onClick={() => setCurrentPage((p) => p + 1)}
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
