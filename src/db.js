@@ -197,7 +197,6 @@ export async function exportData() {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction([STORE_NAME], 'readonly');
     const store = transaction.objectStore(STORE_NAME);
-    const logs = [];
 
     const request = store.getAll();
     request.onsuccess = () => {

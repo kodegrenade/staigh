@@ -22,8 +22,6 @@ import {
   Clock,
   Lock,
   Eye,
-  RefreshCw,
-  Sliders,
   AlertTriangle,
   Sun,
   Moon,
@@ -101,6 +99,7 @@ function Options() {
 
   useEffect(() => {
     loadLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateRange, settings]);
 
   async function loadSettings() {
@@ -358,7 +357,7 @@ function Options() {
         await loadSettings();
         await loadLogs();
         setImportStatus({ type: 'success', message: 'Data imported successfully!' });
-      } catch (err) {
+      } catch {
         setImportStatus({ type: 'error', message: 'Import failed: Invalid file format.' });
       }
     };

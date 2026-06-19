@@ -1,7 +1,6 @@
 import { incrementTime, getDailyLogs, getSettings } from './db.js';
 
 // --- State Variables ---
-let activeTabId = null;
 let activeTarget = null; // Either root domain or full URL
 let activeDomain = null; // Always root domain
 let lastCheckpoint = null; // Timestamp (ms)
@@ -34,7 +33,7 @@ function getCleanDomain(urlStr) {
     const url = new URL(urlStr);
     if (!url.protocol.startsWith('http')) return null;
     return url.hostname.replace(/^www\./, '').toLowerCase();
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -47,7 +46,7 @@ function getCleanTarget(urlStr, domain) {
       const url = new URL(urlStr);
       // Remove query parameters and hashes for privacy and grouping consistency
       return `${url.origin}${url.pathname}`.replace(/^https?:\/\/(www\.)?/, '').toLowerCase();
-    } catch (e) {
+    } catch {
       return domain;
     }
   }
@@ -119,16 +118,12 @@ function startTrackingTab(tab) {
   }
 
   const target = getCleanTarget(tab.url, domain);
-  const isFullUrl = target !== domain;
-
-  activeTabId = tab.id;
   activeTarget = target;
   activeDomain = domain;
   lastCheckpoint = Date.now();
 }
 
 function stopTracking() {
-  activeTabId = null;
   activeTarget = null;
   activeDomain = null;
   lastCheckpoint = null;
@@ -146,7 +141,7 @@ function broadcastTimeSync(domain, totalSeconds) {
             secondsToday: totalSeconds,
           });
         }
-      } catch (e) {
+      } catch {
         // Ignored for settings/extension pages
       }
     });
@@ -222,7 +217,7 @@ function checkDailyLimit(domain, totalSeconds) {
 // --- Event Listeners ---
 
 // Listen for tab switching
-chrome.tabs.onActivated.addListener(async (activeInfo) => {
+chrome.tabs.onActivated.addListener(async () => {
   await flushCurrentTime();
   const tab = await getActiveTab();
   if (tab) {
@@ -233,7 +228,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 });
 
 // Listen for tab URL updates
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
   if (changeInfo.url) {
     // Only handle if the updated tab is the active tab
     const activeTab = await getActiveTab();
@@ -289,7 +284,7 @@ chrome.storage.onChanged.addListener(async (changes, namespace) => {
             action: 'settingsChanged',
             settings,
           });
-        } catch (e) {
+        } catch {
           // Ignored
         }
       });

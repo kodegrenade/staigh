@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Power, ExternalLink, Clock, AlertTriangle, Shield, Sun, Moon } from 'lucide-react';
+import { Power, ExternalLink, Clock, AlertTriangle, Sun, Moon } from 'lucide-react';
 import { getDailyLogs, getSettings, updateSettings } from './db.js';
 import './popup.css';
 
@@ -29,6 +29,7 @@ function Popup() {
     }
     loadData();
     determineActiveTab();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Listen for storage settings updates to sync in real-time
@@ -57,6 +58,7 @@ function Popup() {
     }, 1000);
 
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings, activeTabInfo]);
 
   function getLocalDateString() {
@@ -123,7 +125,7 @@ function Popup() {
           } else {
             setActiveTabInfo(null);
           }
-        } catch (e) {
+        } catch {
           setActiveTabInfo(null);
         }
       } else {
@@ -253,7 +255,7 @@ function Popup() {
           </div>
         ) : (
           <div className="sites-list">
-            {logs.slice(0, 4).map((site, index) => {
+            {logs.slice(0, 4).map((site) => {
               const percentage = totalSeconds > 0 ? (site.seconds / totalSeconds) * 100 : 0;
               const limitMinutes = settings.limits[site.domain];
               const limitSecs = limitMinutes ? limitMinutes * 60 : 0;
