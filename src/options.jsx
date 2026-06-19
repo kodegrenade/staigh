@@ -36,7 +36,7 @@ import {
 } from './db.js';
 import './options.css';
 
-const CHART_COLORS = ['#8b5cf6', '#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#14b8a6'];
+const CHART_COLORS = ['#a78bfa', '#818cf8', '#60a5fa', '#34d399', '#fbbf24', '#f472b6', '#2dd4bf'];
 
 function Options() {
   const [activeTab, setActiveTab] = useState('analytics');
@@ -329,9 +329,6 @@ function Options() {
 
   return (
     <div className="dashboard-container">
-      {/* Background neon blobs */}
-      <div className="bg-glow purple"></div>
-      <div className="bg-glow indigo"></div>
 
       {/* Sidebar Navigation */}
       <aside className="sidebar">
@@ -456,14 +453,14 @@ function Options() {
                         <YAxis stroke="#9aa0b9" fontSize={11} tickLine={false} />
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: 'rgba(15, 16, 33, 0.95)',
-                            borderColor: 'rgba(255,255,255,0.1)',
-                            borderRadius: '8px',
-                            color: '#fff',
+                            backgroundColor: '#18181b',
+                            borderColor: '#27272a',
+                            borderRadius: '6px',
+                            color: '#fafafa',
                           }}
-                          labelStyle={{ color: '#9aa0b9', fontWeight: 600 }}
+                          labelStyle={{ color: '#a1a1aa', fontWeight: 600 }}
                         />
-                        <Bar dataKey="minutes" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="minutes" fill="#a78bfa" radius={[2, 2, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
@@ -494,10 +491,10 @@ function Options() {
                         <Tooltip
                           formatter={(value) => [`${value} min`, 'Time Spent']}
                           contentStyle={{
-                            backgroundColor: 'rgba(15, 16, 33, 0.95)',
-                            borderColor: 'rgba(255,255,255,0.1)',
-                            borderRadius: '8px',
-                            color: '#fff',
+                            backgroundColor: '#18181b',
+                            borderColor: '#27272a',
+                            borderRadius: '6px',
+                            color: '#fafafa',
                           }}
                         />
                       </PieChart>

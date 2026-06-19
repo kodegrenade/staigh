@@ -163,10 +163,6 @@ function Popup() {
 
   return (
     <div className="popup-container">
-      {/* Background Neon Spheres for Glassmorphism */}
-      <div className="glow-sphere purple"></div>
-      <div className="glow-sphere indigo"></div>
-
       {/* Header */}
       <header className="popup-header">
         <div className="logo-section">
@@ -178,18 +174,14 @@ function Popup() {
           onClick={handleTogglePause}
           title={settings.isPaused ? 'Resume Tracking' : 'Pause Tracking'}
         >
-          <Power size={18} />
+          <Power size={16} />
         </button>
       </header>
 
       {/* Hero Stats */}
       <section className="hero-section">
-        <div className="time-ring">
-          <div className="ring-inner">
-            <span className="hero-time-label">Active Today</span>
-            <h1 className="hero-time-value">{formatTime(totalSeconds)}</h1>
-          </div>
-        </div>
+        <span className="hero-time-label">Active Today</span>
+        <h1 className="hero-time-value">{formatTime(totalSeconds)}</h1>
       </section>
 
       {/* Limits Alert Banner */}
