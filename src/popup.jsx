@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Power, ExternalLink, Clock, AlertTriangle, Shield } from 'lucide-react';
+import { Power, ExternalLink, Clock, AlertTriangle, Shield, Sun, Moon } from 'lucide-react';
 import { getDailyLogs, getSettings, updateSettings } from './db.js';
 import './popup.css';
 
@@ -11,6 +11,7 @@ function Popup() {
     limits: {},
     isPaused: false,
     fullUrlTrackingDomains: [],
+    theme: 'dark',
   });
   const [activeTabInfo, setActiveTabInfo] = useState(null);
   const [totalSeconds, setTotalSeconds] = useState(0);
@@ -20,6 +21,7 @@ function Popup() {
     async function loadData() {
       const s = await getSettings();
       setSettings(s);
+      document.documentElement.setAttribute('data-theme', s.theme || 'dark');
       
       const today = getLocalDateString();
       const dailyLogs = await getDailyLogs(today);
@@ -27,6 +29,20 @@ function Popup() {
     }
     loadData();
     determineActiveTab();
+  }, []);
+
+  // Listen for storage settings updates to sync in real-time
+  useEffect(() => {
+    if (typeof chrome === 'undefined' || !chrome.storage) return;
+    const handleStorageChange = (changes, areaName) => {
+      if (areaName === 'local' && changes.settings) {
+        const newSettings = changes.settings.newValue;
+        setSettings(newSettings);
+        document.documentElement.setAttribute('data-theme', newSettings.theme || 'dark');
+      }
+    };
+    chrome.storage.onChanged.addListener(handleStorageChange);
+    return () => chrome.storage.onChanged.removeListener(handleStorageChange);
   }, []);
 
   // Poll logs and active tab state every 1 second for live-updating timer
@@ -121,6 +137,12 @@ function Popup() {
     setSettings(updated);
   }
 
+  async function handleToggleTheme() {
+    const nextTheme = settings.theme === 'light' ? 'dark' : 'light';
+    const updated = await updateSettings({ theme: nextTheme });
+    setSettings(updated);
+  }
+
   function formatTime(totalSecs) {
     const hours = Math.floor(totalSecs / 3600);
     const minutes = Math.floor((totalSecs % 3600) / 60);
@@ -169,13 +191,22 @@ function Popup() {
           <span className="logo-text">staigh</span>
           <span className="logo-dot"></span>
         </div>
-        <button
-          className={`power-btn ${settings.isPaused ? 'paused' : 'active'}`}
-          onClick={handleTogglePause}
-          title={settings.isPaused ? 'Resume Tracking' : 'Pause Tracking'}
-        >
-          <Power size={16} />
-        </button>
+        <div className="header-controls">
+          <button
+            className="theme-toggle-btn"
+            onClick={handleToggleTheme}
+            title={settings.theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+          >
+            {settings.theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
+          </button>
+          <button
+            className={`power-btn ${settings.isPaused ? 'paused' : 'active'}`}
+            onClick={handleTogglePause}
+            title={settings.isPaused ? 'Resume Tracking' : 'Pause Tracking'}
+          >
+            <Power size={15} />
+          </button>
+        </div>
       </header>
 
       {/* Hero Stats */}

@@ -13,8 +13,25 @@
   --danger-bg: rgba(239, 68, 68, 0.08);
   --success-color: #4ade80;
   --success-bg: rgba(74, 222, 128, 0.08);
+  --bg-hover: rgba(255, 255, 255, 0.03);
   --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+[data-theme='light'] {
+  --bg-dark: #fbfbfb;
+  --bg-card: #ffffff;
+  --bg-panel: rgba(255, 255, 255, 0.95);
+  --border-color: #e4e4e7;
+  --text-main: #09090b;
+  --text-muted: #71717a;
+  --purple-accent: #7c3aed;
+  --purple-accent-solid: #6d28d9;
+  --danger-color: #ef4444;
+  --danger-bg: rgba(239, 68, 68, 0.05);
+  --success-color: #10b981;
+  --success-bg: rgba(16, 185, 129, 0.05);
+  --bg-hover: rgba(0, 0, 0, 0.03);
 }
 
 body {
@@ -79,7 +96,13 @@ body {
   margin-bottom: 4px;
 }
 
-.power-btn {
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.power-btn, .theme-toggle-btn {
   background: transparent;
   border: 1px solid var(--border-color);
   color: var(--text-muted);
@@ -93,8 +116,8 @@ body {
   transition: all 0.15s ease;
 }
 
-.power-btn:hover {
-  background: rgba(255, 255, 255, 0.03);
+.power-btn:hover, .theme-toggle-btn:hover {
+  background: var(--bg-hover);
   color: var(--text-main);
 }
 
@@ -162,7 +185,6 @@ body {
 }
 
 .status-indicator-dot.pulsing {
-  /* Simple blink animation instead of high-glow pulse */
   animation: blink 2s infinite steps(2);
 }
 
@@ -319,7 +341,7 @@ body {
 }
 
 .dashboard-btn:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--bg-hover);
   border-color: var(--purple-accent);
 }
 

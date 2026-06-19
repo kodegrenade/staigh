@@ -25,6 +25,8 @@ import {
   RefreshCw,
   Sliders,
   AlertTriangle,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import {
   getLogsInRange,
@@ -47,6 +49,7 @@ function Options() {
     limits: {},
     isPaused: false,
     fullUrlTrackingDomains: [],
+    theme: 'dark',
   });
 
   // Settings Forms State
@@ -64,6 +67,20 @@ function Options() {
     loadSettings();
   }, []);
 
+  // Listen for storage settings updates to sync in real-time
+  useEffect(() => {
+    if (typeof chrome === 'undefined' || !chrome.storage) return;
+    const handleStorageChange = (changes, areaName) => {
+      if (areaName === 'local' && changes.settings) {
+        const newSettings = changes.settings.newValue;
+        setSettings(newSettings);
+        document.documentElement.setAttribute('data-theme', newSettings.theme || 'dark');
+      }
+    };
+    chrome.storage.onChanged.addListener(handleStorageChange);
+    return () => chrome.storage.onChanged.removeListener(handleStorageChange);
+  }, []);
+
   useEffect(() => {
     loadLogs();
   }, [dateRange, settings]);
@@ -71,6 +88,7 @@ function Options() {
   async function loadSettings() {
     const s = await getSettings();
     setSettings(s);
+    document.documentElement.setAttribute('data-theme', s.theme || 'dark');
   }
 
   function getLocalDateString(offsetDays = 0) {
@@ -261,6 +279,12 @@ function Options() {
     setSettings(updated);
   }
 
+  async function handleToggleTheme() {
+    const nextTheme = settings.theme === 'light' ? 'dark' : 'light';
+    const updated = await updateSettings({ theme: nextTheme });
+    setSettings(updated);
+  }
+
   // --- Import / Export Handlers ---
 
   async function handleExport() {
@@ -327,6 +351,12 @@ function Options() {
     return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
   }
 
+  const isLight = settings.theme === 'light';
+  const axisColor = isLight ? '#71717a' : '#a1a1aa';
+  const tooltipBg = isLight ? '#ffffff' : '#18181b';
+  const tooltipBorder = isLight ? '#e4e4e7' : '#27272a';
+  const tooltipText = isLight ? '#09090b' : '#fafafa';
+
   return (
     <div className="dashboard-container">
 
@@ -380,6 +410,10 @@ function Options() {
             <span className={`status-dot ${settings.isPaused ? 'paused' : 'active'}`}></span>
             <span>{settings.isPaused ? 'System Paused' : 'System Tracking'}</span>
           </div>
+          <button className="theme-toggle-btn" onClick={handleToggleTheme}>
+            {settings.theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
+            <span>{settings.theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+          </button>
         </div>
       </aside>
 
@@ -449,16 +483,16 @@ function Options() {
                   {dailyTrendData.length > 0 ? (
                     <ResponsiveContainer width="100%" height={240}>
                       <BarChart data={dailyTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <XAxis dataKey="label" stroke="#9aa0b9" fontSize={11} tickLine={false} />
-                        <YAxis stroke="#9aa0b9" fontSize={11} tickLine={false} />
+                        <XAxis dataKey="label" stroke={axisColor} fontSize={11} tickLine={false} />
+                        <YAxis stroke={axisColor} fontSize={11} tickLine={false} />
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: '#18181b',
-                            borderColor: '#27272a',
+                            backgroundColor: tooltipBg,
+                            borderColor: tooltipBorder,
                             borderRadius: '6px',
-                            color: '#fafafa',
+                            color: tooltipText,
                           }}
-                          labelStyle={{ color: '#a1a1aa', fontWeight: 600 }}
+                          labelStyle={{ color: isLight ? '#71717a' : '#a1a1aa', fontWeight: 600 }}
                         />
                         <Bar dataKey="minutes" fill="#a78bfa" radius={[2, 2, 0, 0]} />
                       </BarChart>
@@ -491,10 +525,10 @@ function Options() {
                         <Tooltip
                           formatter={(value) => [`${value} min`, 'Time Spent']}
                           contentStyle={{
-                            backgroundColor: '#18181b',
-                            borderColor: '#27272a',
+                            backgroundColor: tooltipBg,
+                            borderColor: tooltipBorder,
                             borderRadius: '6px',
-                            color: '#fafafa',
+                            color: tooltipText,
                           }}
                         />
                       </PieChart>

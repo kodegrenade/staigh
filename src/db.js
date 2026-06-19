@@ -148,6 +148,7 @@ const DEFAULT_SETTINGS = {
   limits: {}, // Object mapping domains to daily limit in minutes, e.g. { "youtube.com": 60 }
   isPaused: false, // Global pause state
   fullUrlTrackingDomains: [], // Array of domains where we track full URLs instead of root domains
+  theme: 'dark', // Default visual theme
 };
 
 /**
