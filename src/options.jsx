@@ -77,6 +77,7 @@ function Options() {
   // Status/Alerts State
   const [importStatus, setImportStatus] = useState({ type: '', message: '' });
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState({ show: false, type: '', target: '' });
 
   // Load configuration and data
   useEffect(() => {
@@ -270,11 +271,47 @@ function Options() {
     setNewBlacklistDomain('');
   }
 
-  async function handleRemoveBlacklist(domain) {
-    const updated = await updateSettings({
-      blacklist: settings.blacklist.filter((item) => item !== domain),
-    });
-    setSettings(updated);
+  function requestDelete(type, target) {
+    setDeleteConfirm({ show: true, type, target });
+  }
+
+  function cancelDelete() {
+    setDeleteConfirm({ show: false, type: '', target: '' });
+  }
+
+  async function confirmDelete() {
+    const { type, target } = deleteConfirm;
+    if (type === 'blacklist') {
+      const updated = await updateSettings({
+        blacklist: settings.blacklist.filter((item) => item !== target),
+      });
+      setSettings(updated);
+    } else if (type === 'limit') {
+      const updatedLimits = { ...settings.limits };
+      delete updatedLimits[target];
+      const updated = await updateSettings({ limits: updatedLimits });
+      setSettings(updated);
+    } else if (type === 'granularity') {
+      const updated = await updateSettings({
+        fullUrlTrackingDomains: settings.fullUrlTrackingDomains.filter((item) => item !== target),
+      });
+      setSettings(updated);
+    }
+    cancelDelete();
+  }
+
+  function getConfirmText() {
+    const { type, target } = deleteConfirm;
+    if (type === 'blacklist') {
+      return `Are you sure you want to remove "${target}" from your blocklist? Its browsing time will be tracked again.`;
+    }
+    if (type === 'limit') {
+      return `Are you sure you want to delete the daily limit for "${target}"? The floating countdown widget will be removed.`;
+    }
+    if (type === 'granularity') {
+      return `Are you sure you want to disable path-level tracking for "${target}"? All stats will aggregate under the root domain only.`;
+    }
+    return '';
   }
 
   async function handleAddLimit() {
@@ -294,13 +331,6 @@ function Options() {
     setNewLimitMinutes('');
   }
 
-  async function handleRemoveLimit(domain) {
-    const updatedLimits = { ...settings.limits };
-    delete updatedLimits[domain];
-    const updated = await updateSettings({ limits: updatedLimits });
-    setSettings(updated);
-  }
-
   async function handleAddFullUrl() {
     if (!newFullUrlDomain.trim()) return;
     const domain = newFullUrlDomain.trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, '');
@@ -311,13 +341,6 @@ function Options() {
     });
     setSettings(updated);
     setNewFullUrlDomain('');
-  }
-
-  async function handleRemoveFullUrl(domain) {
-    const updated = await updateSettings({
-      fullUrlTrackingDomains: settings.fullUrlTrackingDomains.filter((item) => item !== domain),
-    });
-    setSettings(updated);
   }
 
   async function handleToggleTheme() {
@@ -746,7 +769,7 @@ function Options() {
                           <img src={getFaviconUrl(domain)} alt="" className="favicon-small" />
                           <span>{domain}</span>
                         </div>
-                        <button className="btn-delete" onClick={() => handleRemoveBlacklist(domain)}>
+                        <button className="btn-delete" onClick={() => requestDelete('blacklist', domain)}>
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -816,7 +839,7 @@ function Options() {
                       </div>
                       <div className="limit-meta">
                         <span className="limit-value">{formatLimitDuration(minutes)} / day</span>
-                        <button className="btn-delete" onClick={() => handleRemoveLimit(domain)}>
+                        <button className="btn-delete" onClick={() => requestDelete('limit', domain)}>
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -874,7 +897,7 @@ function Options() {
                         <img src={getFaviconUrl(domain)} alt="" className="favicon-small" />
                         <span>{domain}</span>
                       </div>
-                      <button className="btn-delete" onClick={() => handleRemoveFullUrl(domain)}>
+                      <button className="btn-delete" onClick={() => requestDelete('granularity', domain)}>
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -962,6 +985,27 @@ function Options() {
               </button>
               <button className="btn-modal-confirm" onClick={handleConfirmClear}>
                 Reset Everything
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Delete Confirmation Modal */}
+      {deleteConfirm.show && (
+        <div className="modal-overlay" onClick={cancelDelete}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-icon-wrapper">
+              <AlertTriangle size={24} className="modal-warning-icon" />
+            </div>
+            <h2>Confirm Removal</h2>
+            <p>{getConfirmText()}</p>
+            <div className="modal-actions">
+              <button className="btn-modal-cancel" onClick={cancelDelete}>
+                Cancel
+              </button>
+              <button className="btn-modal-confirm" onClick={confirmDelete}>
+                Confirm Removal
               </button>
             </div>
           </div>
