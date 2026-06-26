@@ -76,9 +76,16 @@ function Options() {
   const itemsPerPage = 10;
 
   // Status/Alerts State
-  const [importStatus, setImportStatus] = useState({ type: '', message: '' });
+  const [backupStatus, setBackupStatus] = useState({ type: '', message: '', card: '' });
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, type: '', target: '' });
+
+  function showBackupStatus(card, type, message) {
+    setBackupStatus({ card, type, message });
+    setTimeout(() => {
+      setBackupStatus({ card: '', type: '', message: '' });
+    }, 4000);
+  }
 
   // Load configuration and data
   useEffect(() => {
@@ -383,8 +390,10 @@ function Options() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      showBackupStatus('export', 'success', 'Backup exported successfully!');
     } catch (e) {
       console.error('Export failed', e);
+      showBackupStatus('export', 'error', 'Export failed: Unable to read database.');
     }
   }
 
@@ -399,9 +408,9 @@ function Options() {
         await importData(data);
         await loadSettings();
         await loadLogs();
-        setImportStatus({ type: 'success', message: 'Data imported successfully!' });
+        showBackupStatus('import', 'success', 'Data imported successfully!');
       } catch {
-        setImportStatus({ type: 'error', message: 'Import failed: Invalid file format.' });
+        showBackupStatus('import', 'error', 'Import failed: Invalid file format.');
       }
     };
     reader.readAsText(file);
@@ -415,10 +424,7 @@ function Options() {
     setShowClearConfirm(false);
     await clearAllLogs();
     await loadLogs();
-    setImportStatus({ type: 'success', message: 'All tracking history has been successfully cleared.' });
-    setTimeout(() => {
-      setImportStatus({ type: '', message: '' });
-    }, 4000);
+    showBackupStatus('reset', 'success', 'All tracking history has been successfully cleared.');
   }
 
   // --- UI Format Helpers ---
@@ -978,6 +984,11 @@ function Options() {
                 <button className="btn-backup-action" onClick={handleExport}>
                   <span>Export Backup</span>
                 </button>
+                {backupStatus.card === 'export' && backupStatus.message && (
+                  <div className={`import-alert ${backupStatus.type}`} style={{ marginTop: '12px' }}>
+                    {backupStatus.message}
+                  </div>
+                )}
               </div>
 
               <div className="backup-card">
@@ -998,9 +1009,9 @@ function Options() {
                     style={{ display: 'none' }}
                   />
                 </div>
-                {importStatus.message && (
-                  <div className={`import-alert ${importStatus.type}`}>
-                    {importStatus.message}
+                {backupStatus.card === 'import' && backupStatus.message && (
+                  <div className={`import-alert ${backupStatus.type}`}>
+                    {backupStatus.message}
                   </div>
                 )}
               </div>
@@ -1014,6 +1025,11 @@ function Options() {
                 <button className="btn-backup-action danger" onClick={handleClearData}>
                   <span>Clear All History</span>
                 </button>
+                {backupStatus.card === 'reset' && backupStatus.message && (
+                  <div className={`import-alert ${backupStatus.type}`} style={{ marginTop: '12px' }}>
+                    {backupStatus.message}
+                  </div>
+                )}
               </div>
             </div>
           </div>
