@@ -18,6 +18,7 @@ function Popup() {
   const [showLimitForm, setShowLimitForm] = useState(false);
   const [limitHours, setLimitHours] = useState('');
   const [limitMinutes, setLimitMinutes] = useState('');
+  const [snoozes, setSnoozes] = useState({});
 
   // Load initial settings and logs
   useEffect(() => {
@@ -26,6 +27,15 @@ function Popup() {
       setSettings(s);
       document.documentElement.setAttribute('data-theme', s.theme || 'dark');
       
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.get(['snoozes'], (result) => {
+          const today = getLocalDateString();
+          if (result.snoozes && result.snoozes.date === today) {
+            setSnoozes(result.snoozes.counts || {});
+          }
+        });
+      }
+
       const today = getLocalDateString();
       const dailyLogs = await getDailyLogs(today);
       processLogs(dailyLogs);
@@ -39,10 +49,21 @@ function Popup() {
   useEffect(() => {
     if (typeof chrome === 'undefined' || !chrome.storage) return;
     const handleStorageChange = (changes, areaName) => {
-      if (areaName === 'local' && changes.settings) {
-        const newSettings = changes.settings.newValue;
-        setSettings(newSettings);
-        document.documentElement.setAttribute('data-theme', newSettings.theme || 'dark');
+      if (areaName === 'local') {
+        if (changes.settings) {
+          const newSettings = changes.settings.newValue;
+          setSettings(newSettings);
+          document.documentElement.setAttribute('data-theme', newSettings.theme || 'dark');
+        }
+        if (changes.snoozes) {
+          const today = getLocalDateString();
+          const newSnoozes = changes.snoozes.newValue;
+          if (newSnoozes && newSnoozes.date === today) {
+            setSnoozes(newSnoozes.counts || {});
+          } else {
+            setSnoozes({});
+          }
+        }
       }
     };
     chrome.storage.onChanged.addListener(handleStorageChange);
@@ -233,7 +254,9 @@ function Popup() {
   const activeLimitWarnings = logs
     .filter((log) => settings.limits[log.domain])
     .map((log) => {
-      const limitSecs = settings.limits[log.domain] * 60;
+      const snoozeCount = snoozes[log.domain] || 0;
+      const effectiveLimitMinutes = settings.limits[log.domain] + (snoozeCount * 10);
+      const limitSecs = effectiveLimitMinutes * 60;
       const ratio = log.seconds / limitSecs;
       return {
         domain: log.domain,
@@ -350,8 +373,10 @@ function Popup() {
           <div className="sites-list">
             {logs.slice(0, 4).map((site) => {
               const percentage = totalSeconds > 0 ? (site.seconds / totalSeconds) * 100 : 0;
-              const limitMinutes = settings.limits[site.domain];
-              const limitSecs = limitMinutes ? limitMinutes * 60 : 0;
+              const baseLimitMinutes = settings.limits[site.domain];
+              const snoozeCount = snoozes[site.domain] || 0;
+              const effectiveLimitMinutes = baseLimitMinutes ? baseLimitMinutes + (snoozeCount * 10) : 0;
+              const limitSecs = effectiveLimitMinutes * 60;
               const isOverLimit = limitSecs > 0 && site.seconds >= limitSecs;
 
               return (
