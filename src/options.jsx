@@ -25,6 +25,7 @@ import {
   AlertTriangle,
   Sun,
   Moon,
+  Pencil,
 } from 'lucide-react';
 import {
   getLogsInRange,
@@ -317,6 +318,20 @@ function Options() {
       return `Are you sure you want to disable path-level tracking for "${target}"? All stats will aggregate under the root domain only.`;
     }
     return '';
+  }
+
+  function handleEditLimit(domain, totalMinutes) {
+    setNewLimitDomain(domain);
+    const hrs = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    setNewLimitHours(hrs > 0 ? String(hrs) : '');
+    setNewLimitMinutes(mins > 0 ? String(mins) : '');
+    
+    // Smooth scroll the limit configuration form into view
+    const formCard = document.querySelector('.form-card');
+    if (formCard) {
+      formCard.scrollIntoView({ behavior: 'smooth' });
+    }
   }
 
   async function handleAddLimit() {
@@ -823,9 +838,26 @@ function Options() {
                   onKeyDown={(e) => e.key === 'Enter' && handleAddLimit()}
                   style={{ flexGrow: 1, maxWidth: '100px' }}
                 />
+                {newLimitDomain.trim() && (
+                  <button
+                    type="button"
+                    className="btn-clear-form"
+                    onClick={() => {
+                      setNewLimitDomain('');
+                      setNewLimitHours('');
+                      setNewLimitMinutes('');
+                    }}
+                  >
+                    Clear
+                  </button>
+                )}
                 <button className="btn-add" onClick={handleAddLimit}>
                   <Plus size={16} />
-                  <span>Set Limit</span>
+                  <span>
+                    {settings.limits[newLimitDomain.trim().toLowerCase()] !== undefined
+                      ? 'Update Limit'
+                      : 'Set Limit'}
+                  </span>
                 </button>
               </div>
             </div>
@@ -844,9 +876,22 @@ function Options() {
                       </div>
                       <div className="limit-meta">
                         <span className="limit-value">{formatLimitDuration(minutes)} / day</span>
-                        <button className="btn-delete" onClick={() => requestDelete('limit', domain)}>
-                          <Trash2 size={14} />
-                        </button>
+                        <div className="actions-wrapper" style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            className="btn-edit-item"
+                            onClick={() => handleEditLimit(domain, minutes)}
+                            title="Edit Limit"
+                          >
+                            <Pencil size={12} />
+                          </button>
+                          <button
+                            className="btn-delete"
+                            onClick={() => requestDelete('limit', domain)}
+                            title="Delete Limit"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}

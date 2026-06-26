@@ -659,6 +659,26 @@ input[type="number"] {
   border-color: rgba(239, 68, 68, 0.2);
 }
 
+.btn-edit-item {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-edit-item:hover {
+  background-color: var(--bg-hover);
+  color: var(--purple-accent);
+  border-color: var(--border-focus);
+}
+
 .limit-meta {
   display: flex;
   align-items: center;
@@ -1018,6 +1038,25 @@ input[type="number"] {
   font-weight: 600;
   font-family: var(--font-mono);
   color: var(--text-muted);
+}
+
+.btn-clear-form {
+  padding: 10px 16px;
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-right: 8px;
+}
+
+.btn-clear-form:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-main);
+  border-color: var(--border-focus);
 }
 
 
