@@ -12,7 +12,10 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
 }
 
 function initWidget(initialConfig) {
-  let { limitMinutes, secondsToday, isPaused, theme } = initialConfig;
+  let { limitMinutes, secondsToday, isPaused, theme, snoozeCount } = initialConfig;
+  snoozeCount = Number(snoozeCount) || 0;
+  limitMinutes = Number(limitMinutes) || 0;
+  secondsToday = Number(secondsToday) || 0;
   let intervalId = null;
 
   // 1. Create root element in host DOM
@@ -88,6 +91,22 @@ function initWidget(initialConfig) {
     if (intervalId) clearInterval(intervalId);
   };
   widget.appendChild(closeBtn);
+
+  // Snooze Button
+  const snoozeBtn = document.createElement('button');
+  snoozeBtn.className = 'staigh-widget-snooze';
+  snoozeBtn.innerText = 'Snooze';
+  snoozeBtn.title = 'Snooze +10m (Max 3/day)';
+  snoozeBtn.onclick = () => {
+    chrome.runtime.sendMessage({ action: 'snoozeDomain', domain }, (res) => {
+      if (res && res.success) {
+        snoozeCount = Number(res.snoozeCount) || 0;
+        limitMinutes = Number(res.limitMinutes) || 0;
+        updateWidgetUI();
+      }
+    });
+  };
+  widget.appendChild(snoozeBtn);
 
   shadow.appendChild(widget);
 
@@ -180,6 +199,14 @@ function initWidget(initialConfig) {
       widget.classList.remove('warning-time');
       widget.classList.remove('expired-time');
     }
+
+    // Toggle snooze button visibility
+    if (snoozeCount < 3 && remaining <= 300) {
+      snoozeBtn.style.display = '';
+      snoozeBtn.innerText = `Snooze (${3 - snoozeCount})`;
+    } else {
+      snoozeBtn.style.display = 'none';
+    }
   }
 
   // Initial layout draw
@@ -199,6 +226,10 @@ function initWidget(initialConfig) {
       // Sync local ticker with official background database state
       secondsToday = message.secondsToday;
       updateWidgetUI();
+    } else if (message.action === 'snoozeApplied') {
+      snoozeCount = Number(message.snoozeCount) || 0;
+      limitMinutes = Number(message.limitMinutes) || 0;
+      updateWidgetUI();
     } else if (message.action === 'settingsChanged') {
       const nextLimit = message.settings.limits?.[domain];
       if (nextLimit === undefined) {
@@ -207,7 +238,8 @@ function initWidget(initialConfig) {
         if (intervalId) clearInterval(intervalId);
       } else {
         // Limits or config properties updated
-        limitMinutes = nextLimit;
+        snoozeCount = Number(snoozeCount) || 0;
+        limitMinutes = Number(nextLimit) + (snoozeCount * 10);
         isPaused = message.settings.isPaused;
         theme = message.settings.theme || 'dark';
 

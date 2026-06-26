@@ -74,6 +74,7 @@ function Options() {
   const [analyticsSearch, setAnalyticsSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [selectedChartDomain, setSelectedChartDomain] = useState('all');
 
   // Status/Alerts State
   const [backupStatus, setBackupStatus] = useState({ type: '', message: '', card: '' });
@@ -194,6 +195,19 @@ function Options() {
       .sort((a, b) => b.seconds - a.seconds);
   }, [logs, settings.fullUrlTrackingDomains]);
 
+  // Get top visited untracked domains as suggestions
+  const blocklistSuggestions = React.useMemo(() => {
+    return siteBreakdown
+      .filter((site) => !site.isUrl && !settings.blacklist.includes(site.domain))
+      .slice(0, 4);
+  }, [siteBreakdown, settings.blacklist]);
+
+  const limitsSuggestions = React.useMemo(() => {
+    return siteBreakdown
+      .filter((site) => !site.isUrl && settings.limits[site.domain] === undefined)
+      .slice(0, 4);
+  }, [siteBreakdown, settings.limits]);
+
   // Filter logs based on search input
   const filteredSites = React.useMemo(() => {
     if (!analyticsSearch.trim()) return siteBreakdown;
@@ -238,8 +252,10 @@ function Options() {
     });
 
     logs.forEach((log) => {
-      if (!log.isFullUrl && daysMap[log.date]) {
-        daysMap[log.date].minutes += log.seconds / 60;
+      if (!log.isFullUrl && (selectedChartDomain === 'all' || log.domain === selectedChartDomain)) {
+        if (daysMap[log.date]) {
+          daysMap[log.date].minutes += log.seconds / 60;
+        }
       }
     });
 
@@ -247,7 +263,7 @@ function Options() {
       ...day,
       minutes: Math.round(day.minutes),
     }));
-  }, [logs, dateRange]);
+  }, [logs, dateRange, selectedChartDomain]);
 
   // Distribution chart data (Top 5 + "Other")
   const distributionData = React.useMemo(() => {
@@ -574,7 +590,21 @@ function Options() {
             {/* Charts Row */}
             <div className="charts-grid">
               <div className="chart-card large">
-                <h3>Activity Trend (Minutes)</h3>
+                <div className="chart-card-header-flex">
+                  <h3>Activity Trend (Minutes)</h3>
+                  <select
+                    className="chart-domain-select"
+                    value={selectedChartDomain}
+                    onChange={(e) => setSelectedChartDomain(e.target.value)}
+                  >
+                    <option value="all">All Sites</option>
+                    {Array.from(new Set(logs.map((log) => log.domain))).map((domain) => (
+                      <option key={domain} value={domain}>
+                        {domain}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div className="chart-container">
                   {dailyTrendData.length > 0 ? (
                     <ResponsiveContainer width="100%" height={240}>
@@ -767,6 +797,22 @@ function Options() {
                   <span>Exclude Domain</span>
                 </button>
               </div>
+              {blocklistSuggestions.length > 0 && (
+                <div className="suggestion-strip">
+                  <span className="suggestion-title">Suggestions:</span>
+                  <div className="suggestion-tags">
+                    {blocklistSuggestions.map((site) => (
+                      <button
+                        key={site.domain}
+                        className="suggestion-tag"
+                        onClick={() => setNewBlacklistDomain(site.domain)}
+                      >
+                        {site.domain} ({formatDuration(site.seconds)})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="list-card">
@@ -866,6 +912,26 @@ function Options() {
                   </span>
                 </button>
               </div>
+              {limitsSuggestions.length > 0 && (
+                <div className="suggestion-strip">
+                  <span className="suggestion-title">Suggestions:</span>
+                  <div className="suggestion-tags">
+                    {limitsSuggestions.map((site) => (
+                      <button
+                        key={site.domain}
+                        className="suggestion-tag"
+                        onClick={() => {
+                          setNewLimitDomain(site.domain);
+                          setNewLimitHours('');
+                          setNewLimitMinutes('');
+                        }}
+                      >
+                        {site.domain} ({formatDuration(site.seconds)})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="list-card">

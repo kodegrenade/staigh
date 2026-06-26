@@ -162,3 +162,25 @@
   0% { box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.5); }
   100% { box-shadow: 0 4px 16px rgba(239, 68, 68, 0.35); border-color: rgba(239, 68, 68, 1); }
 }
+
+/* Snooze Button */
+.staigh-widget-snooze {
+  background-color: var(--purple-accent);
+  border: 1px solid var(--purple-accent);
+  color: #ffffff;
+  font-size: 9.5px;
+  font-weight: 700;
+  border-radius: 3px;
+  padding: 3px 6px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  line-height: 1;
+  transition: all 0.15s ease;
+  margin-left: 2px;
+  white-space: nowrap;
+}
+
+.staigh-widget-snooze:hover {
+  filter: brightness(1.1);
+}
+

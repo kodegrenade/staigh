@@ -15,6 +15,9 @@ function Popup() {
   });
   const [activeTabInfo, setActiveTabInfo] = useState(null);
   const [totalSeconds, setTotalSeconds] = useState(0);
+  const [showLimitForm, setShowLimitForm] = useState(false);
+  const [limitHours, setLimitHours] = useState('');
+  const [limitMinutes, setLimitMinutes] = useState('');
 
   // Load initial settings and logs
   useEffect(() => {
@@ -145,6 +148,61 @@ function Popup() {
     setSettings(updated);
   }
 
+  async function handleQuickBlock() {
+    if (!activeTabInfo) return;
+    const domain = activeTabInfo.domain;
+    if (settings.blacklist.includes(domain)) return;
+    const updated = await updateSettings({
+      blacklist: [...settings.blacklist, domain],
+    });
+    setSettings(updated);
+  }
+
+  async function handleQuickUnblock() {
+    if (!activeTabInfo) return;
+    const domain = activeTabInfo.domain;
+    const updated = await updateSettings({
+      blacklist: settings.blacklist.filter((d) => d !== domain),
+    });
+    setSettings(updated);
+  }
+
+  async function handleSaveQuickLimit() {
+    if (!activeTabInfo) return;
+    const domain = activeTabInfo.domain;
+    const hrs = parseInt(limitHours, 10) || 0;
+    const mins = parseInt(limitMinutes, 10) || 0;
+    const totalMinutes = (hrs * 60) + mins;
+    
+    if (totalMinutes <= 0) return;
+    
+    const updatedLimits = { ...settings.limits, [domain]: totalMinutes };
+    const updated = await updateSettings({ limits: updatedLimits });
+    setSettings(updated);
+    setShowLimitForm(false);
+  }
+
+  async function handleRemoveQuickLimit() {
+    if (!activeTabInfo) return;
+    const domain = activeTabInfo.domain;
+    const updatedLimits = { ...settings.limits };
+    delete updatedLimits[domain];
+    const updated = await updateSettings({ limits: updatedLimits });
+    setSettings(updated);
+    setShowLimitForm(false);
+  }
+
+  function formatLimitDuration(mins) {
+    const hours = Math.floor(mins / 60);
+    const minutes = mins % 60;
+    if (hours > 0 && minutes > 0) {
+      return `${hours}h ${minutes}m`;
+    } else if (hours > 0) {
+      return `${hours}h`;
+    }
+    return `${minutes}m`;
+  }
+
   function formatTime(totalSecs) {
     const hours = Math.floor(totalSecs / 3600);
     const minutes = Math.floor((totalSecs % 3600) / 60);
@@ -231,18 +289,53 @@ function Popup() {
 
       {/* Active Tab Status bar */}
       {activeTabInfo && (
-        <div className="active-status-bar">
-          <span className="status-indicator-dot pulsing"></span>
-          <span className="status-text">
-            {activeTabInfo.incognito
-              ? 'Incognito (Tracking Excluded)'
-              : activeTabInfo.isBlocked
-              ? 'Site Blocklisted'
-              : settings.isPaused
-              ? 'Tracking Paused'
-              : `Tracking: ${activeTabInfo.domain}`}
-          </span>
-        </div>
+        <>
+          <div className="active-status-bar">
+            <span className="status-indicator-dot pulsing"></span>
+            <span className="status-text">
+              {activeTabInfo.incognito
+                ? 'Incognito (Tracking Excluded)'
+                : activeTabInfo.isBlocked
+                ? 'Site Blocklisted'
+                : settings.isPaused
+                ? 'Tracking Paused'
+                : `Tracking: ${activeTabInfo.domain}`}
+            </span>
+          </div>
+          {activeTabInfo && !activeTabInfo.incognito && !settings.isPaused && (
+            <div className="quick-actions-bar">
+              {activeTabInfo.isBlocked ? (
+                <button className="btn-quick-action" onClick={handleQuickUnblock}>
+                  Unblock Site
+                </button>
+              ) : (
+                <>
+                  <button className="btn-quick-action" onClick={handleQuickBlock}>
+                    Ignore Site
+                  </button>
+                  <button
+                    className={`btn-quick-action ${settings.limits[activeTabInfo.domain] ? 'has-limit' : ''}`}
+                    onClick={() => {
+                      const currentLimit = settings.limits[activeTabInfo.domain];
+                      if (currentLimit) {
+                        setLimitHours(String(Math.floor(currentLimit / 60) || ''));
+                        setLimitMinutes(String(currentLimit % 60 || ''));
+                      } else {
+                        setLimitHours('');
+                        setLimitMinutes('');
+                      }
+                      setShowLimitForm(true);
+                    }}
+                  >
+                    {settings.limits[activeTabInfo.domain]
+                      ? `Limit: ${formatLimitDuration(settings.limits[activeTabInfo.domain])}`
+                      : 'Set Limit'}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </>
       )}
 
       {/* Top Websites List */}
@@ -299,6 +392,52 @@ function Popup() {
           <ExternalLink size={14} />
         </button>
       </footer>
+
+      {/* Quick Limit Modal Form */}
+      {showLimitForm && activeTabInfo && (
+        <div className="popup-modal-overlay" onClick={() => setShowLimitForm(false)}>
+          <div className="popup-modal-content" onClick={(e) => e.stopPropagation()}>
+            <h4>Limit for {activeTabInfo.domain}</h4>
+            <div className="popup-modal-inputs">
+              <div className="input-field">
+                <label>Hours</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="23"
+                  placeholder="0"
+                  value={limitHours}
+                  onChange={(e) => setLimitHours(e.target.value)}
+                />
+              </div>
+              <div className="input-field">
+                <label>Mins</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="59"
+                  placeholder="0"
+                  value={limitMinutes}
+                  onChange={(e) => setLimitMinutes(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="popup-modal-actions">
+              <button className="btn-popup-cancel" onClick={() => setShowLimitForm(false)}>
+                Cancel
+              </button>
+              {settings.limits[activeTabInfo.domain] && (
+                <button className="btn-popup-delete" onClick={handleRemoveQuickLimit}>
+                  Remove
+                </button>
+              )}
+              <button className="btn-popup-save" onClick={handleSaveQuickLimit}>
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

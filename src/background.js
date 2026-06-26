@@ -17,6 +17,7 @@ let settings = {
 let todayTimes = {}; // In-memory cache of today's time (seconds) per target
 let currentTrackingDate = getLocalDateString();
 let notifiedLimits = {}; // Key: YYYY-MM-DD_domain, Value: true
+let dailySnoozes = {}; // Key: domain, Value: count
 
 // --- Helper Functions ---
 
@@ -62,12 +63,31 @@ function isBlacklisted(domain) {
   });
 }
 
+async function loadDailySnoozes() {
+  const today = getLocalDateString();
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['snoozes'], (result) => {
+      const snoozes = result.snoozes || {};
+      if (snoozes.date === today) {
+        dailySnoozes = snoozes.counts || {};
+      } else {
+        dailySnoozes = {};
+        chrome.storage.local.set({ snoozes: { date: today, counts: {} } });
+      }
+      resolve();
+    });
+  });
+}
+
 // --- Initialization ---
 
 async function initialize() {
   // Load settings
   const loadedSettings = await getSettings();
   settings = loadedSettings;
+
+  // Load daily snoozes
+  await loadDailySnoozes();
 
   // Load today's stats into cache
   await loadTodayStats();
@@ -197,18 +217,21 @@ function checkDailyLimit(domain, totalSeconds) {
   const limitMinutes = settings.limits?.[domain];
   if (!limitMinutes) return;
 
+  const snoozeCount = dailySnoozes[domain] || 0;
+  const effectiveLimitMinutes = limitMinutes + (snoozeCount * 10);
+
   const today = getLocalDateString();
-  const limitKey = `${today}_${domain}`;
+  const limitKey = `${today}_${domain}_snooze_${snoozeCount}`;
 
   if (notifiedLimits[limitKey]) return; // Already alerted today
 
-  if ((totalSeconds / 60) >= limitMinutes) {
+  if ((totalSeconds / 60) >= effectiveLimitMinutes) {
     notifiedLimits[limitKey] = true;
     chrome.notifications.create({
       type: 'basic',
       iconUrl: 'icon128.png',
       title: 'Daily Site Limit Reached',
-      message: `You have spent ${limitMinutes} minute(s) on ${domain} today.`,
+      message: `You have spent ${effectiveLimitMinutes} minute(s) on ${domain} today.`,
       priority: 2,
     });
   }
@@ -309,17 +332,76 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const { domain } = request;
     const limitMinutes = settings.limits?.[domain];
     if (limitMinutes) {
-      const secondsToday = todayTimes[domain] || 0;
-      sendResponse({
-        hasLimit: true,
-        limitMinutes,
-        secondsToday,
-        isPaused: settings.isPaused,
-        theme: settings.theme || 'dark',
+      chrome.storage.local.get(['snoozes'], (result) => {
+        const today = getLocalDateString();
+        const snoozes = result.snoozes || {};
+        let snoozeCount = 0;
+        if (snoozes.date === today && snoozes.counts) {
+          snoozeCount = snoozes.counts[domain] || 0;
+          dailySnoozes = snoozes.counts; // Sync cache
+        }
+        const secondsToday = todayTimes[domain] || 0;
+        sendResponse({
+          hasLimit: true,
+          limitMinutes: limitMinutes + (snoozeCount * 10),
+          secondsToday,
+          isPaused: settings.isPaused,
+          theme: settings.theme || 'dark',
+          snoozeCount,
+        });
       });
     } else {
       sendResponse({ hasLimit: false });
     }
+  } else if (request.action === 'snoozeDomain') {
+    const { domain } = request;
+    const today = getLocalDateString();
+    
+    chrome.storage.local.get(['snoozes'], (result) => {
+      const snoozes = result.snoozes || {};
+      let counts = {};
+      if (snoozes.date === today && snoozes.counts) {
+        counts = snoozes.counts;
+      }
+      
+      const currentCount = counts[domain] || 0;
+      if (currentCount < 3) {
+        const nextCount = currentCount + 1;
+        counts[domain] = nextCount;
+        dailySnoozes = counts; // Sync cache
+        
+        chrome.storage.local.set({
+          snoozes: {
+            date: today,
+            counts: counts
+          }
+        }, () => {
+          const baseLimit = settings.limits[domain] || 0;
+          const newLimitMinutes = baseLimit + (nextCount * 10);
+          
+          chrome.tabs.query({}, (tabs) => {
+            tabs.forEach((tab) => {
+              try {
+                const tabDomain = getCleanDomain(tab.url);
+                if (tabDomain === domain) {
+                  chrome.tabs.sendMessage(tab.id, {
+                    action: 'snoozeApplied',
+                    snoozeCount: nextCount,
+                    limitMinutes: newLimitMinutes,
+                  });
+                }
+              } catch {
+                // Ignored
+              }
+            });
+          });
+          
+          sendResponse({ success: true, snoozeCount: nextCount, limitMinutes: newLimitMinutes });
+        });
+      } else {
+        sendResponse({ success: false, error: 'Max snoozes reached' });
+      }
+    });
   }
   return true; // Keeps messaging port open for async response
 });
