@@ -209,20 +209,25 @@ function Options() {
   // Aggregate time spent per day for the daily trend chart
   const dailyTrendData = React.useMemo(() => {
     const daysMap = {};
-    let rangeDays = 1;
+    let offsets = [0];
 
-    if (dateRange === '7days') rangeDays = 7;
-    else if (dateRange === '30days') rangeDays = 30;
+    if (dateRange === 'yesterday') {
+      offsets = [1];
+    } else if (dateRange === '7days') {
+      offsets = Array.from({ length: 7 }, (_, i) => 6 - i);
+    } else if (dateRange === '30days') {
+      offsets = Array.from({ length: 30 }, (_, i) => 29 - i);
+    }
 
-    // Pre-populate range days with 0 to fill any gaps
-    for (let i = rangeDays - 1; i >= 0; i--) {
-      const dateStr = getLocalDateString(i);
+    // Pre-populate range days to fill any gaps
+    offsets.forEach((offset) => {
+      const dateStr = getLocalDateString(offset);
       const label = new Date(dateStr).toLocaleDateString(undefined, {
         month: 'short',
         day: 'numeric',
       });
       daysMap[dateStr] = { date: dateStr, label, minutes: 0 };
-    }
+    });
 
     logs.forEach((log) => {
       if (!log.isFullUrl && daysMap[log.date]) {
