@@ -41,7 +41,17 @@ function getCleanDomain(urlStr) {
 
 function getCleanTarget(urlStr, domain) {
   if (!urlStr || !domain) return null;
-  const isFullUrlTracked = settings.fullUrlTrackingDomains.includes(domain);
+
+  // Clean prefix from URL for matching
+  const cleanUrl = urlStr.replace(/^https?:\/\/(www\.)?/, '').toLowerCase();
+
+  const isFullUrlTracked = settings.fullUrlTrackingDomains.some((trackItem) => {
+    // Exact domain match (e.g. trackItem is "github.com" and domain is "github.com")
+    if (trackItem === domain) return true;
+    // Subpath match: cleanUrl matches exactly or matches directory boundary
+    return cleanUrl === trackItem || cleanUrl.startsWith(trackItem + '/');
+  });
+
   if (isFullUrlTracked) {
     try {
       const url = new URL(urlStr);

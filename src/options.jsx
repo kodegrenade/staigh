@@ -161,22 +161,42 @@ function Options() {
   // Group by site and sort by seconds spent
   const siteBreakdown = React.useMemo(() => {
     const breakdown = {};
+    const subpathTotals = {};
+
     logs.forEach((log) => {
-      // Background script writes both full URL logs and root domain logs.
-      // We filter based on whether the user has full URL tracking active.
-      // If full URL tracking is active for the domain, we want to show the full URL details,
-      // otherwise we just show the root domain.
-      const isDomainFullUrlTracked = settings.fullUrlTrackingDomains.includes(log.domain);
-      
-      if (isDomainFullUrlTracked) {
-        // Show detailed full URLs (exclude root domain summaries to avoid double counting)
+      // Check if this log entry's target or domain matches any granular tracking entry
+      const isTargetTrackedGranular = settings.fullUrlTrackingDomains.some((trackItem) => {
+        if (trackItem === log.domain) return true;
+        return log.target === trackItem || log.target.startsWith(trackItem + '/');
+      });
+
+      if (isTargetTrackedGranular) {
         if (log.isFullUrl) {
-          breakdown[log.target] = (breakdown[log.target] || 0) + log.seconds;
+          // If the tracking item is a root domain, track all subpaths.
+          // Otherwise, match the specific configured subpath.
+          const targetMatches = settings.fullUrlTrackingDomains.some((trackItem) => {
+            if (trackItem === log.domain) return true;
+            return log.target === trackItem || log.target.startsWith(trackItem + '/');
+          });
+
+          if (targetMatches) {
+            breakdown[log.target] = (breakdown[log.target] || 0) + log.seconds;
+            subpathTotals[log.domain] = (subpathTotals[log.domain] || 0) + log.seconds;
+          }
         }
       } else {
-        // Show root domains only
         if (!log.isFullUrl) {
           breakdown[log.target] = (breakdown[log.target] || 0) + log.seconds;
+        }
+      }
+    });
+
+    // Subtract subpath totals from root domains to prevent double counting
+    Object.keys(subpathTotals).forEach((domain) => {
+      if (!settings.fullUrlTrackingDomains.includes(domain) && breakdown[domain] !== undefined) {
+        breakdown[domain] = Math.max(0, breakdown[domain] - subpathTotals[domain]);
+        if (breakdown[domain] === 0) {
+          delete breakdown[domain];
         }
       }
     });
@@ -460,7 +480,8 @@ function Options() {
   }
 
   function getFaviconUrl(domain) {
-    return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+    const host = domain.split('/')[0];
+    return `https://www.google.com/s2/favicons?domain=${host}&sz=64`;
   }
 
   const isLight = settings.theme === 'light';
