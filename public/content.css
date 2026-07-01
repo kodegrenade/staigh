@@ -7,7 +7,7 @@
 
 .staigh-widget-container {
   /* Carbon default variables */
-  --bg-widget: #18181b;
+  --bg-widget: rgba(24, 24, 27, 0.85);
   --border-widget: #27272a;
   --text-widget: #fafafa;
   --text-muted-widget: #a1a1aa;
@@ -18,31 +18,89 @@
   --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  position: fixed;
-  z-index: 2147483647; /* Maximum possible z-index to overlay everything */
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  width: 160px; /* Fixed card width for bento look */
   background-color: var(--bg-widget);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-widget);
-  border-radius: 6px;
-  padding: 6px 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  padding: 10px;
+  gap: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
   font-family: var(--font-sans);
   color: var(--text-widget);
   user-select: none;
   pointer-events: auto;
-  transition: border-color 0.3s, background-color 0.3s, color 0.3s;
+  transition: border-color 0.3s, background-color 0.3s, color 0.3s, opacity 0.2s, box-shadow 0.2s, width 0.2s, padding 0.2s;
+  box-sizing: border-box;
 }
 
 /* Light Theme Variables */
 .staigh-widget-container.light-theme {
-  --bg-widget: #ffffff;
+  --bg-widget: rgba(255, 255, 255, 0.85);
   --border-widget: #e4e4e7;
   --text-widget: #09090b;
   --text-muted-widget: #71717a;
   --purple-accent: #7c3aed;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+/* Collapsed Compact State */
+.staigh-widget-container.is-collapsed {
+  flex-direction: row;
+  width: auto;
+  padding: 6px 12px;
+  gap: 12px;
+  align-items: center;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.staigh-widget-container.is-collapsed.light-theme {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+.staigh-widget-brand-group {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1;
+}
+
+.staigh-widget-label {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted-widget);
+  font-weight: 600;
+  line-height: 1;
+  margin-top: 1px;
+}
+
+/* Top bar row */
+.staigh-widget-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+/* Brand Text */
+.staigh-widget-brand {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: lowercase;
+  color: var(--text-muted-widget);
+}
+
+/* Action controls */
+.staigh-widget-action-area {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* Drag Handle Component */
@@ -72,38 +130,77 @@
   border-radius: 50%;
 }
 
-/* Clock Display Area */
-.staigh-widget-display {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.staigh-widget-label {
-  font-size: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted-widget);
-  line-height: 1;
-  margin-bottom: 2px;
-  font-weight: 600;
-}
-
+/* Timer Readout */
 .staigh-widget-timer {
-  font-size: 13px;
+  font-size: 18px;
   font-weight: 700;
   font-family: var(--font-mono);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--text-widget);
+  text-align: center;
+  width: 100%;
+}
+
+.is-collapsed .staigh-widget-timer {
+  font-size: 13px;
+  width: auto;
+  text-align: left;
+}
+
+/* Progress Bar Background */
+.staigh-widget-progress-bg {
+  width: 100%;
+  height: 4px;
+  background-color: var(--border-widget);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.light-theme .staigh-widget-progress-bg {
+  background-color: rgba(9, 9, 11, 0.06);
+}
+
+/* Progress Bar Fill */
+.staigh-widget-progress-fill {
+  height: 100%;
+  width: 0%;
+  background-color: var(--purple-accent);
+  border-radius: 2px;
+  transition: width 1s linear, background-color 0.3s;
+}
+
+.staigh-widget-progress-fill.warning-fill {
+  background-color: var(--border-danger);
+}
+
+.staigh-widget-progress-fill.expired-fill {
+  background-color: var(--danger-color);
+}
+
+/* Bottom Bar */
+.staigh-widget-bottom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 6px;
+}
+
+/* Detail Text */
+.staigh-widget-detail-text {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  color: var(--text-muted-widget);
   line-height: 1;
 }
 
 /* Warning State (<5 mins remaining) */
 .staigh-widget-container.warning-time {
   border-color: var(--border-danger);
-  color: var(--danger-color);
 }
 
-.staigh-widget-container.warning-time .staigh-widget-label {
+.staigh-widget-container.warning-time .staigh-widget-timer {
   color: var(--danger-color);
 }
 
@@ -111,16 +208,11 @@
 .staigh-widget-container.expired-time {
   border-color: var(--danger-color);
   background-color: var(--danger-bg);
-  color: var(--danger-color);
   animation: pulse-border 1.5s infinite alternate;
 }
 
-.staigh-widget-container.expired-time .staigh-widget-label {
-  color: var(--danger-color);
-}
-
 .staigh-widget-container.expired-time .staigh-widget-timer {
-  font-size: 12px;
+  color: var(--danger-color);
 }
 
 /* Pause State overlay indicator */
@@ -132,6 +224,33 @@
   color: var(--text-muted-widget);
 }
 
+/* Collapse / Expand Button */
+.staigh-widget-collapse-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted-widget);
+  cursor: pointer;
+  opacity: 0.4;
+  padding: 0;
+  transition: opacity 0.15s, transform 0.15s;
+  outline: none;
+}
+
+.staigh-widget-collapse-btn:hover {
+  opacity: 0.9;
+}
+
+.staigh-widget-collapse-btn svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 /* Mini Close Button */
 .staigh-widget-close {
   display: flex;
@@ -139,13 +258,18 @@
   justify-content: center;
   width: 14px;
   height: 14px;
-  border-radius: 3px;
+  border: none;
+  background: transparent;
   cursor: pointer;
   opacity: 0.3;
   transition: opacity 0.15s, background-color 0.15s;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1;
   font-weight: bold;
+  color: var(--text-widget);
+  padding: 0;
+  border-radius: 3px;
+  outline: none;
 }
 
 .staigh-widget-close:hover {
@@ -157,30 +281,32 @@
   background-color: rgba(0, 0, 0, 0.05);
 }
 
-/* Keyframes */
-@keyframes pulse-border {
-  0% { box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.5); }
-  100% { box-shadow: 0 4px 16px rgba(239, 68, 68, 0.35); border-color: rgba(239, 68, 68, 1); }
-}
-
 /* Snooze Button */
 .staigh-widget-snooze {
   background-color: var(--purple-accent);
-  border: 1px solid var(--purple-accent);
+  border: none;
   color: #ffffff;
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 700;
-  border-radius: 3px;
+  border-radius: 4px;
   padding: 3px 6px;
   cursor: pointer;
   font-family: var(--font-sans);
   line-height: 1;
   transition: all 0.15s ease;
-  margin-left: 2px;
   white-space: nowrap;
+  outline: none;
 }
 
 .staigh-widget-snooze:hover {
   filter: brightness(1.1);
 }
 
+/* Ghost Mode removed based on feedback */
+
+
+/* Keyframes */
+@keyframes pulse-border {
+  0% { box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.5); }
+  100% { box-shadow: 0 4px 16px rgba(239, 68, 68, 0.35); border-color: rgba(239, 68, 68, 1); }
+}

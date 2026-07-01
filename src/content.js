@@ -26,15 +26,15 @@ function initWidget(initialConfig) {
   
   // Starting defaults
   let top = 20;
-  let left = window.innerWidth - 160;
+  let left = window.innerWidth - 180;
 
   // Retrieve last saved coordinates for this domain
   chrome.storage.local.get(['widgetPos'], (result) => {
     if (result.widgetPos && result.widgetPos[domain]) {
       const savedPos = result.widgetPos[domain];
       // Bound check saved coordinates in case screen resized
-      top = Math.max(0, Math.min(savedPos.top, window.innerHeight - 50));
-      left = Math.max(0, Math.min(savedPos.left, window.innerWidth - 150));
+      top = Math.max(0, Math.min(savedPos.top, window.innerHeight - 80));
+      left = Math.max(0, Math.min(savedPos.left, window.innerWidth - 180));
     }
     rootDiv.style.top = top + 'px';
     rootDiv.style.left = left + 'px';
@@ -55,6 +55,7 @@ function initWidget(initialConfig) {
   const widget = document.createElement('div');
   widget.className = `staigh-widget-container ${theme}-theme`;
 
+  // Create static sub-elements
   // Drag Handle dots
   const dragHandle = document.createElement('div');
   dragHandle.className = 'staigh-widget-drag-handle';
@@ -63,34 +64,32 @@ function initWidget(initialConfig) {
     dot.className = 'staigh-widget-dot';
     dragHandle.appendChild(dot);
   }
-  widget.appendChild(dragHandle);
 
-  // Timer Display area
-  const display = document.createElement('div');
-  display.className = 'staigh-widget-display';
+  // Brand title
+  const brand = document.createElement('span');
+  brand.className = 'staigh-widget-brand';
+  brand.innerText = 'staigh';
 
-  const label = document.createElement('div');
+  // Brand label
+  const label = document.createElement('span');
   label.className = 'staigh-widget-label';
   label.innerText = 'Limit';
-  display.appendChild(label);
 
+  // Timer Display
   const timer = document.createElement('div');
   timer.className = 'staigh-widget-timer';
   timer.innerText = '--:--';
-  display.appendChild(timer);
 
-  widget.appendChild(display);
+  // Progress Bar
+  const progressBarBg = document.createElement('div');
+  progressBarBg.className = 'staigh-widget-progress-bg';
+  const progressBarFill = document.createElement('div');
+  progressBarFill.className = 'staigh-widget-progress-fill';
+  progressBarBg.appendChild(progressBarFill);
 
-  // Minimize/Hide button
-  const closeBtn = document.createElement('div');
-  closeBtn.className = 'staigh-widget-close';
-  closeBtn.innerText = '×';
-  closeBtn.title = 'Dismiss Countdown';
-  closeBtn.onclick = () => {
-    rootDiv.style.display = 'none';
-    if (intervalId) clearInterval(intervalId);
-  };
-  widget.appendChild(closeBtn);
+  // Detail text
+  const detailText = document.createElement('span');
+  detailText.className = 'staigh-widget-detail-text';
 
   // Snooze Button
   const snoozeBtn = document.createElement('button');
@@ -106,7 +105,106 @@ function initWidget(initialConfig) {
       }
     });
   };
-  widget.appendChild(snoozeBtn);
+
+  // Close Button
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'staigh-widget-close';
+  closeBtn.innerText = '×';
+  closeBtn.title = 'Dismiss Countdown';
+  closeBtn.onclick = () => {
+    rootDiv.style.display = 'none';
+    if (intervalId) clearInterval(intervalId);
+  };
+
+  // Collapse / Expand Button
+  const collapseBtn = document.createElement('button');
+  collapseBtn.className = 'staigh-widget-collapse-btn';
+  collapseBtn.title = 'Toggle Expand/Collapse';
+
+  // SVG icons
+  const chevronLeftSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>`;
+  const chevronRightSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>`;
+
+  let isCollapsed = false;
+
+  // Retrieve collapse preference
+  chrome.storage.local.get(['widgetCollapse'], (result) => {
+    if (result.widgetCollapse && result.widgetCollapse[domain]) {
+      isCollapsed = true;
+    }
+    updateLayout();
+  });
+
+  function toggleCollapse() {
+    isCollapsed = !isCollapsed;
+    chrome.storage.local.get(['widgetCollapse'], (result) => {
+      const widgetCollapse = result.widgetCollapse || {};
+      if (isCollapsed) {
+        widgetCollapse[domain] = true;
+      } else {
+        delete widgetCollapse[domain];
+      }
+      chrome.storage.local.set({ widgetCollapse });
+    });
+    updateLayout();
+  }
+
+  collapseBtn.onclick = toggleCollapse;
+
+  function updateLayout() {
+    // Clear widget contents and rebuild
+    widget.innerHTML = '';
+
+    if (isCollapsed) {
+      widget.className = `staigh-widget-container ${theme}-theme is-collapsed`;
+      
+      // Brand group with brand and label
+      const brandGroup = document.createElement('div');
+      brandGroup.className = 'staigh-widget-brand-group';
+      brandGroup.appendChild(brand);
+      brandGroup.appendChild(label);
+
+      // Compact layout: dragHandle, brandGroup, timer, collapseBtn
+      widget.appendChild(dragHandle);
+      widget.appendChild(brandGroup);
+      widget.appendChild(timer);
+      
+      collapseBtn.innerHTML = chevronLeftSVG;
+      widget.appendChild(collapseBtn);
+    } else {
+      widget.className = `staigh-widget-container ${theme}-theme`;
+
+      // Top bar
+      const topBar = document.createElement('div');
+      topBar.className = 'staigh-widget-top-bar';
+      topBar.appendChild(dragHandle);
+      topBar.appendChild(brand);
+
+      const actionArea = document.createElement('div');
+      actionArea.className = 'staigh-widget-action-area';
+      collapseBtn.innerHTML = chevronRightSVG;
+      actionArea.appendChild(collapseBtn);
+      actionArea.appendChild(closeBtn);
+      topBar.appendChild(actionArea);
+
+      widget.appendChild(topBar);
+
+      // Timer
+      widget.appendChild(timer);
+
+      // Progress bar
+      widget.appendChild(progressBarBg);
+
+      // Bottom bar
+      const bottomBar = document.createElement('div');
+      bottomBar.className = 'staigh-widget-bottom-bar';
+      bottomBar.appendChild(detailText);
+      bottomBar.appendChild(snoozeBtn);
+
+      widget.appendChild(bottomBar);
+    }
+    updateWidgetUI();
+  }
 
   shadow.appendChild(widget);
 
@@ -117,6 +215,7 @@ function initWidget(initialConfig) {
 
   dragHandle.addEventListener('mousedown', (e) => {
     isDragging = true;
+    widget.classList.add('staigh-is-dragging');
     startX = e.clientX;
     startY = e.clientY;
 
@@ -137,8 +236,8 @@ function initWidget(initialConfig) {
     let newTop = startTop + dy;
 
     // Viewport boundaries constrain
-    const width = rootDiv.offsetWidth || 120;
-    const height = rootDiv.offsetHeight || 38;
+    const width = rootDiv.offsetWidth || (isCollapsed ? 180 : 160);
+    const height = rootDiv.offsetHeight || (isCollapsed ? 38 : 76);
 
     newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - width));
     newTop = Math.max(0, Math.min(newTop, window.innerHeight - height));
@@ -150,6 +249,7 @@ function initWidget(initialConfig) {
   document.addEventListener('mouseup', () => {
     if (isDragging) {
       isDragging = false;
+      widget.classList.remove('staigh-is-dragging');
 
       // Save position to storage
       const rect = rootDiv.getBoundingClientRect();
@@ -160,6 +260,8 @@ function initWidget(initialConfig) {
       });
     }
   });
+
+  // Ghost Mode hover listeners removed (disabled based on feedback)
 
   // 4. Timer Rendering and Ticking
   function formatWidgetTime(secsRemaining) {
@@ -173,6 +275,12 @@ function initWidget(initialConfig) {
       return `${hours}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     }
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+
+  function formatSpentText(spentSecs, limitSecs) {
+    const spentMins = Math.round(spentSecs / 60);
+    const limitMins = Math.round(limitSecs / 60);
+    return `${spentMins}m / ${limitMins}m`;
   }
 
   function updateWidgetUI() {
@@ -189,15 +297,15 @@ function initWidget(initialConfig) {
     timer.innerText = formatWidgetTime(remaining);
 
     // Apply color warning thresholds
+    widget.classList.remove('warning-time', 'expired-time');
+    progressBarFill.classList.remove('warning-fill', 'expired-fill');
+
     if (remaining <= 0) {
-      widget.classList.remove('warning-time');
       widget.classList.add('expired-time');
+      progressBarFill.classList.add('expired-fill');
     } else if (remaining < 300) { // < 5 minutes left
       widget.classList.add('warning-time');
-      widget.classList.remove('expired-time');
-    } else {
-      widget.classList.remove('warning-time');
-      widget.classList.remove('expired-time');
+      progressBarFill.classList.add('warning-fill');
     }
 
     // Toggle snooze button visibility
@@ -207,10 +315,16 @@ function initWidget(initialConfig) {
     } else {
       snoozeBtn.style.display = 'none';
     }
+
+    // Update progress bar fill width and details text (only in expanded mode)
+    if (!isCollapsed) {
+      const percentage = limitSeconds > 0 ? Math.min(100, (secondsToday / limitSeconds) * 100) : 0;
+      progressBarFill.style.width = `${percentage}%`;
+      detailText.innerText = formatSpentText(secondsToday, limitSeconds);
+    }
   }
 
-  // Initial layout draw
-  updateWidgetUI();
+  // Initial layout draw (triggered inside updateLayout after preference load)
 
   // Run local 1-second ticker for smooth ticking
   intervalId = setInterval(() => {
@@ -244,7 +358,7 @@ function initWidget(initialConfig) {
         theme = message.settings.theme || 'dark';
 
         // Reapply container theme class
-        widget.className = `staigh-widget-container ${theme}-theme`;
+        widget.className = `staigh-widget-container ${theme}-theme${isCollapsed ? ' is-collapsed' : ''}`;
         updateWidgetUI();
       }
     }
