@@ -50,6 +50,159 @@ function formatLimitDuration(mins) {
   return `${minutes}m`;
 }
 
+const CATEGORY_MAP = {
+  // Productivity & Work
+  'github.com': 'Productivity & Work',
+  'stackoverflow.com': 'Productivity & Work',
+  'notion.so': 'Productivity & Work',
+  'figma.com': 'Productivity & Work',
+  'slack.com': 'Productivity & Work',
+  'trello.com': 'Productivity & Work',
+  'asana.com': 'Productivity & Work',
+  'jira.com': 'Productivity & Work',
+  'zoom.us': 'Productivity & Work',
+  'meet.google.com': 'Productivity & Work',
+  'docs.google.com': 'Productivity & Work',
+  'drive.google.com': 'Productivity & Work',
+  'gitlab.com': 'Productivity & Work',
+  'bitbucket.org': 'Productivity & Work',
+  'npmjs.com': 'Productivity & Work',
+  'npmjs.org': 'Productivity & Work',
+  'canva.com': 'Productivity & Work',
+  'linear.app': 'Productivity & Work',
+
+  // Social & Communication
+  'x.com': 'Social & Communication',
+  'twitter.com': 'Social & Communication',
+  'reddit.com': 'Social & Communication',
+  'facebook.com': 'Social & Communication',
+  'instagram.com': 'Social & Communication',
+  'linkedin.com': 'Social & Communication',
+  'tiktok.com': 'Social & Communication',
+  'whatsapp.com': 'Social & Communication',
+  'telegram.org': 'Social & Communication',
+  'discord.com': 'Social & Communication',
+  'messenger.com': 'Social & Communication',
+  'pinterest.com': 'Social & Communication',
+
+  // Entertainment & Streaming
+  'youtube.com': 'Entertainment & Streaming',
+  'netflix.com': 'Entertainment & Streaming',
+  'spotify.com': 'Entertainment & Streaming',
+  'twitch.tv': 'Entertainment & Streaming',
+  'soundcloud.com': 'Entertainment & Streaming',
+  'hulu.com': 'Entertainment & Streaming',
+  'vimeo.com': 'Entertainment & Streaming',
+  'disneyplus.com': 'Entertainment & Streaming',
+
+  // Learning & Reference
+  'wikipedia.org': 'Learning & Reference',
+  'w3schools.com': 'Learning & Reference',
+  'developer.mozilla.org': 'Learning & Reference',
+  'dev.to': 'Learning & Reference',
+  'medium.com': 'Learning & Reference',
+  'coursera.org': 'Learning & Reference',
+  'udemy.com': 'Learning & Reference',
+  'stackexchange.com': 'Learning & Reference',
+  'khanacademy.org': 'Learning & Reference',
+
+  // Utility & Shopping
+  'google.com': 'Utility & Shopping',
+  'amazon.com': 'Utility & Shopping',
+  'ebay.com': 'Utility & Shopping',
+  'yahoo.com': 'Utility & Shopping',
+  'bing.com': 'Utility & Shopping',
+  'duckduckgo.com': 'Utility & Shopping',
+  'paypal.com': 'Utility & Shopping',
+  'stripe.com': 'Utility & Shopping',
+};
+
+const CATEGORY_COLORS = {
+  'Productivity & Work': '#a78bfa',
+  'Social & Communication': '#60a5fa',
+  'Entertainment & Streaming': '#f472b6',
+  'Learning & Reference': '#34d399',
+  'Utility & Shopping': '#fbbf24',
+  'Other': '#94a3b8',
+};
+
+const PERSONAS = {
+  PRODUCTIVITY: {
+    title: 'Focus Maestro',
+    subtitle: 'Productivity Enthusiast',
+    description: 'You are highly focused! The majority of your browsing time was spent on work, coding, and productivity tools.',
+    color: '#a78bfa',
+    className: 'purple-theme',
+  },
+  SOCIAL: {
+    title: 'Social Butterfly',
+    subtitle: 'Communication Centric',
+    description: 'You are highly connected! A significant part of your time was dedicated to social networks and messaging platforms.',
+    color: '#60a5fa',
+    className: 'blue-theme',
+  },
+  ENTERTAINMENT: {
+    title: 'Media Streamer',
+    subtitle: 'Leisure Seeker',
+    description: 'You love media! Video streams, music, and entertainment sites captured a large share of your browsing session.',
+    color: '#f472b6',
+    className: 'pink-theme',
+  },
+  LEARNING: {
+    title: 'Knowledge Scholar',
+    subtitle: 'Deep Researcher',
+    description: 'Curious and inquisitive! You spent a lot of time reading reference guides, documentation, and educational materials.',
+    color: '#34d399',
+    className: 'green-theme',
+  },
+  BALANCED: {
+    title: 'Balanced Navigator',
+    subtitle: 'Well-Rounded Surfer',
+    description: 'Everything in moderation. You maintained an excellent balance between work, learning, and leisure browsing.',
+    color: '#94a3b8',
+    className: 'slate-theme',
+  },
+};
+
+function getDomainCategory(domain, overrides = {}, classified = {}) {
+  if (!domain) return 'Other';
+  const cleanDomain = domain.split('/')[0].toLowerCase();
+
+  // Tier 3: User Overrides
+  if (overrides[cleanDomain]) {
+    return overrides[cleanDomain];
+  }
+
+  // Tier 1: Suffix Dictionary Lookup
+  if (CATEGORY_MAP[cleanDomain]) {
+    return CATEGORY_MAP[cleanDomain];
+  }
+
+  // Tier 2.1: Classified cache from metadata descriptions
+  if (classified[cleanDomain]) {
+    return classified[cleanDomain];
+  }
+
+  // Tier 2.2: Heuristic regex domain check
+  if (cleanDomain.includes('git') || cleanDomain.includes('slack') || cleanDomain.includes('notion') || cleanDomain.includes('jira') || cleanDomain.includes('office') || cleanDomain.includes('workspace')) {
+    return 'Productivity & Work';
+  }
+  if (cleanDomain.includes('social') || cleanDomain.includes('chat') || cleanDomain.includes('mail') || cleanDomain.includes('messenger') || cleanDomain.includes('talk')) {
+    return 'Social & Communication';
+  }
+  if (cleanDomain.includes('stream') || cleanDomain.includes('music') || cleanDomain.includes('tv') || cleanDomain.includes('video') || cleanDomain.includes('game') || cleanDomain.includes('play')) {
+    return 'Entertainment & Streaming';
+  }
+  if (cleanDomain.includes('wiki') || cleanDomain.includes('edu') || cleanDomain.includes('learn') || cleanDomain.includes('doc') || cleanDomain.includes('science') || cleanDomain.includes('research')) {
+    return 'Learning & Reference';
+  }
+  if (cleanDomain.includes('search') || cleanDomain.includes('shop') || cleanDomain.includes('store') || cleanDomain.includes('pay') || cleanDomain.includes('cart')) {
+    return 'Utility & Shopping';
+  }
+
+  return 'Other';
+}
+
 function Options() {
   const [activeTab, setActiveTab] = useState('analytics');
   const [dateRange, setDateRange] = useState('7days'); // 'today', 'yesterday', '7days', '30days'
@@ -306,6 +459,86 @@ function Options() {
     return chartData;
   }, [siteBreakdown]);
 
+  // Browsing Category breakdown Memo
+  const categoryBreakdown = React.useMemo(() => {
+    const breakdown = {
+      'Productivity & Work': 0,
+      'Social & Communication': 0,
+      'Entertainment & Streaming': 0,
+      'Learning & Reference': 0,
+      'Utility & Shopping': 0,
+      'Other': 0,
+    };
+
+    siteBreakdown.forEach((site) => {
+      const cat = getDomainCategory(site.domain, settings.categoryOverrides, settings.classifiedDomains);
+      breakdown[cat] = (breakdown[cat] || 0) + site.seconds;
+    });
+
+    const total = Object.values(breakdown).reduce((sum, val) => sum + val, 0);
+    if (total === 0) return [];
+
+    return Object.entries(breakdown)
+      .map(([name, seconds]) => ({
+        name,
+        seconds,
+        percentage: Math.round((seconds / total) * 100),
+      }))
+      .filter((item) => item.seconds > 0)
+      .sort((a, b) => b.seconds - a.seconds);
+  }, [siteBreakdown, settings.categoryOverrides, settings.classifiedDomains]);
+
+  // Browsing Persona Memo
+  const browsingPersona = React.useMemo(() => {
+    let totalSecs = 0;
+    const breakdown = {
+      productivity: 0,
+      social: 0,
+      entertainment: 0,
+      learning: 0,
+    };
+
+    siteBreakdown.forEach((site) => {
+      const cat = getDomainCategory(site.domain, settings.categoryOverrides, settings.classifiedDomains);
+      totalSecs += site.seconds;
+
+      if (cat === 'Productivity & Work') breakdown.productivity += site.seconds;
+      else if (cat === 'Social & Communication') breakdown.social += site.seconds;
+      else if (cat === 'Entertainment & Streaming') breakdown.entertainment += site.seconds;
+      else if (cat === 'Learning & Reference') breakdown.learning += site.seconds;
+    });
+
+    if (totalSecs === 0) return null;
+
+    const prodPct = (breakdown.productivity / totalSecs) * 100;
+    const socialPct = (breakdown.social / totalSecs) * 100;
+    const entPct = (breakdown.entertainment / totalSecs) * 100;
+    const learnPct = (breakdown.learning / totalSecs) * 100;
+
+    // Focus vs. Leisure ratio
+    const focusPct = Math.round(prodPct + learnPct);
+    const leisurePct = 100 - focusPct;
+    const topSite = siteBreakdown[0] ? siteBreakdown[0].domain : 'None';
+
+    let profile = PERSONAS.BALANCED;
+    if (prodPct >= 45) {
+      profile = PERSONAS.PRODUCTIVITY;
+    } else if (socialPct >= 40) {
+      profile = PERSONAS.SOCIAL;
+    } else if (entPct >= 40) {
+      profile = PERSONAS.ENTERTAINMENT;
+    } else if (learnPct >= 30) {
+      profile = PERSONAS.LEARNING;
+    }
+
+    return {
+      ...profile,
+      focusPct,
+      leisurePct,
+      topSite,
+    };
+  }, [siteBreakdown, settings.categoryOverrides, settings.classifiedDomains]);
+
   // --- Setting Handlers ---
 
   async function handleAddBlacklist() {
@@ -404,6 +637,15 @@ function Options() {
     });
     setSettings(updated);
     setNewFullUrlDomain('');
+  }
+
+  async function handleUpdateCategoryOverride(domain, nextCategory) {
+    const updatedOverrides = {
+      ...(settings.categoryOverrides || {}),
+      [domain]: nextCategory,
+    };
+    const updated = await updateSettings({ categoryOverrides: updatedOverrides });
+    setSettings(updated);
   }
 
   async function handleToggleTheme() {
@@ -706,6 +948,73 @@ function Options() {
               </div>
             </div>
 
+            {/* Persona and Category Profile Row */}
+            {browsingPersona && (
+              <div className="persona-grid">
+                {/* Browsing Persona Card */}
+                <div className={`persona-card ${browsingPersona.className}`}>
+                  <div className="persona-header">
+                    <div className="persona-title-group">
+                      <span className="persona-subtitle">{browsingPersona.subtitle}</span>
+                      <h2>{browsingPersona.title}</h2>
+                    </div>
+                    <div className="persona-badge">
+                      <div className="persona-badge-glow"></div>
+                      <span className="persona-badge-inner">★</span>
+                    </div>
+                  </div>
+                  <p className="persona-description">{browsingPersona.description}</p>
+                  
+                  <div className="persona-stats-grid">
+                    <div className="p-stat">
+                      <span className="p-stat-label">Focus Score</span>
+                      <span className="p-stat-val">{browsingPersona.focusPct}%</span>
+                    </div>
+                    <div className="p-stat">
+                      <span className="p-stat-label">Leisure Share</span>
+                      <span className="p-stat-val">{browsingPersona.leisurePct}%</span>
+                    </div>
+                    <div className="p-stat">
+                      <span className="p-stat-label">Top Domain</span>
+                      <span className="p-stat-val text-ellipsis" title={browsingPersona.topSite}>{browsingPersona.topSite}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Category Profile Card */}
+                <div className="chart-card category-card">
+                  <h3>Category Profile</h3>
+                  <p className="category-subtitle">Time distribution by activity type</p>
+                  <div className="category-list">
+                    {categoryBreakdown.map((cat) => (
+                      <div key={cat.name} className="category-item">
+                        <div className="category-meta">
+                          <div className="cat-name-dot">
+                            <span 
+                              className="cat-dot" 
+                              style={{ backgroundColor: CATEGORY_COLORS[cat.name] || '#94a3b8' }}
+                            ></span>
+                            <span className="cat-name-text">{cat.name}</span>
+                          </div>
+                          <span className="category-percentage-text">{cat.percentage}%</span>
+                        </div>
+                        <div className="category-progress-bg">
+                          <div 
+                            className="category-progress-fill" 
+                            style={{ 
+                              width: `${cat.percentage}%`,
+                              backgroundColor: CATEGORY_COLORS[cat.name] || '#94a3b8'
+                            }}
+                          ></div>
+                        </div>
+                        <div className="category-duration-text">{formatDuration(cat.seconds)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Sites list grid */}
             <div className="table-card">
               <div className="table-card-header">
@@ -737,6 +1046,7 @@ function Options() {
                       <thead>
                         <tr>
                           <th>Website</th>
+                          <th>Category</th>
                           <th>Type</th>
                           <th className="align-right">Time Spent</th>
                         </tr>
@@ -758,6 +1068,20 @@ function Options() {
                                   {site.target}
                                 </span>
                               </div>
+                            </td>
+                            <td>
+                              <select
+                                className="table-category-select"
+                                value={getDomainCategory(site.domain, settings.categoryOverrides, settings.classifiedDomains)}
+                                onChange={(e) => handleUpdateCategoryOverride(site.domain, e.target.value)}
+                              >
+                                <option value="Productivity & Work">💼 Work</option>
+                                <option value="Social & Communication">💬 Social</option>
+                                <option value="Entertainment & Streaming">🎥 Media</option>
+                                <option value="Learning & Reference">📚 Learn</option>
+                                <option value="Utility & Shopping">🛠️ Utility</option>
+                                <option value="Other">🌐 Other</option>
+                              </select>
                             </td>
                             <td>
                               <span className={`badge ${site.isUrl ? 'purple' : 'gray'}`}>

@@ -1,4 +1,4 @@
-import { incrementTime, getDailyLogs, getSettings } from './db.js';
+import { incrementTime, getDailyLogs, getSettings, updateSettings } from './db.js';
 
 // --- State Variables ---
 let activeTarget = null; // Either root domain or full URL
@@ -412,9 +412,65 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: false, error: 'Max snoozes reached' });
       }
     });
+  } else if (request.action === 'reportMetadata') {
+    const { domain, title, description } = request;
+    handleReportMetadata(domain, title, description);
+    sendResponse({ success: true });
   }
   return true; // Keeps messaging port open for async response
 });
 
 // Initialize on background service startup
 initialize();
+
+// --- Categorisation Helpers ---
+
+const CATEGORY_KEYWORDS = {
+  'Productivity & Work': ['work', 'code', 'develop', 'design', 'manage', 'task', 'project', 'team', 'doc', 'workspace', 'collab', 'sheet', 'board', 'sprint', 'git', 'repo', 'bug', 'issue'],
+  'Social & Communication': ['social', 'chat', 'message', 'friend', 'connect', 'feed', 'share', 'follow', 'network', 'tweet', 'post', 'status', 'community', 'forum'],
+  'Entertainment & Streaming': ['stream', 'video', 'watch', 'music', 'play', 'movie', 'show', 'game', 'song', 'listen', 'audio', 'player', 'tv', 'media', 'entertainment'],
+  'Learning & Reference': ['learn', 'wiki', 'study', 'education', 'research', 'reference', 'course', 'tutorial', 'documentation', 'encyclopedia', 'guide', 'science', 'math', 'academic'],
+  'Utility & Shopping': ['shop', 'store', 'buy', 'price', 'cart', 'deal', 'pay', 'search', 'tool', 'convert', 'format', 'calculator', 'utility']
+};
+
+function classifyByMetadata(description, title) {
+  const text = `${title || ''} ${description || ''}`.toLowerCase();
+  let bestCategory = 'Other';
+  let maxScore = 0;
+
+  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    let score = 0;
+    keywords.forEach(keyword => {
+      if (text.includes(keyword)) {
+        score++;
+      }
+    });
+
+    if (score > maxScore) {
+      maxScore = score;
+      bestCategory = category;
+    }
+  }
+
+  return maxScore >= 1 ? bestCategory : 'Other';
+}
+
+async function handleReportMetadata(domain, title, description) {
+  if (!domain) return;
+  const cleanDomain = domain.toLowerCase();
+
+  const currentSettings = await getSettings();
+  const classifiedDomains = currentSettings.classifiedDomains || {};
+  const categoryOverrides = currentSettings.categoryOverrides || {};
+
+  // If already classified or overridden, skip to save storage operations
+  if (categoryOverrides[cleanDomain] || classifiedDomains[cleanDomain]) {
+    return;
+  }
+
+  const category = classifyByMetadata(description, title);
+  if (category && category !== 'Other') {
+    classifiedDomains[cleanDomain] = category;
+    await updateSettings({ classifiedDomains });
+  }
+}

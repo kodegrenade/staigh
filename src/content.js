@@ -9,6 +9,18 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
       initWidget(response);
     }
   });
+
+  // Extract HTML title and meta description for classification
+  const title = document.title || '';
+  const descMeta = document.querySelector('meta[name="description"]');
+  const description = descMeta ? descMeta.getAttribute('content') : '';
+
+  chrome.runtime.sendMessage({
+    action: 'reportMetadata',
+    domain,
+    title,
+    description
+  });
 }
 
 function initWidget(initialConfig) {

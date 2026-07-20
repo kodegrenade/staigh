@@ -149,6 +149,8 @@ const DEFAULT_SETTINGS = {
   isPaused: false, // Global pause state
   fullUrlTrackingDomains: [], // Array of domains where we track full URLs instead of root domains
   theme: 'dark', // Default visual theme
+  classifiedDomains: {}, // Auto-classified domain maps
+  categoryOverrides: {}, // User-configured custom category mapping overrides
 };
 
 /**

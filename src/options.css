@@ -1123,6 +1123,330 @@ input[type="number"] {
   border-color: var(--border-focus);
 }
 
+/* Persona & Category Profile Layout */
+.persona-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  .persona-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Persona Card */
+.persona-card {
+  position: relative;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 240px;
+  box-sizing: border-box;
+  overflow: hidden;
+  transition: border-color 0.3s;
+}
+
+.persona-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.persona-title-group h2 {
+  font-size: 24px;
+  font-weight: 800;
+  margin: 4px 0 0 0;
+  letter-spacing: -0.02em;
+  color: var(--text-main);
+}
+
+.persona-subtitle {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.persona-description {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  margin: 0 0 20px 0;
+  max-width: 95%;
+}
+
+/* Persona Badge & Glow Animations */
+.persona-badge {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #fff;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.persona-badge-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  opacity: 0.15;
+  filter: blur(4px);
+  animation: pulse-glow 2s infinite alternate;
+}
+
+.persona-badge-inner {
+  z-index: 2;
+  font-weight: bold;
+}
+
+/* Persona Theme Colors */
+.persona-card.purple-theme {
+  border-color: rgba(167, 139, 250, 0.3);
+  box-shadow: 0 4px 20px rgba(167, 139, 250, 0.06);
+}
+.persona-card.purple-theme .persona-title-group h2 {
+  color: #a78bfa;
+}
+.persona-card.purple-theme .persona-badge {
+  border-color: #a78bfa;
+  color: #a78bfa;
+}
+.persona-card.purple-theme .persona-badge-glow {
+  background-color: #a78bfa;
+}
+
+.persona-card.blue-theme {
+  border-color: rgba(96, 165, 250, 0.3);
+  box-shadow: 0 4px 20px rgba(96, 165, 250, 0.06);
+}
+.persona-card.blue-theme .persona-title-group h2 {
+  color: #60a5fa;
+}
+.persona-card.blue-theme .persona-badge {
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+.persona-card.blue-theme .persona-badge-glow {
+  background-color: #60a5fa;
+}
+
+.persona-card.pink-theme {
+  border-color: rgba(244, 114, 182, 0.3);
+  box-shadow: 0 4px 20px rgba(244, 114, 182, 0.06);
+}
+.persona-card.pink-theme .persona-title-group h2 {
+  color: #f472b6;
+}
+.persona-card.pink-theme .persona-badge {
+  border-color: #f472b6;
+  color: #f472b6;
+}
+.persona-card.pink-theme .persona-badge-glow {
+  background-color: #f472b6;
+}
+
+.persona-card.green-theme {
+  border-color: rgba(52, 211, 153, 0.3);
+  box-shadow: 0 4px 20px rgba(52, 211, 153, 0.06);
+}
+.persona-card.green-theme .persona-title-group h2 {
+  color: #34d399;
+}
+.persona-card.green-theme .persona-badge {
+  border-color: #34d399;
+  color: #34d399;
+}
+.persona-card.green-theme .persona-badge-glow {
+  background-color: #34d399;
+}
+
+.persona-card.slate-theme {
+  border-color: var(--border-color);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+.persona-card.slate-theme .persona-title-group h2 {
+  color: var(--text-main);
+}
+.persona-card.slate-theme .persona-badge {
+  border-color: var(--border-color);
+  color: var(--text-muted);
+}
+.persona-card.slate-theme .persona-badge-glow {
+  background-color: var(--text-muted);
+}
+
+/* Persona Metrics Grid */
+.persona-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.2fr;
+  gap: 12px;
+  background-color: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.p-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.p-stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.p-stat-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.text-ellipsis {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+/* Category Profile Card */
+.category-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 240px;
+}
+
+.category-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 2px 0 16px 0;
+}
+
+.category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  max-height: 180px;
+  padding-right: 4px;
+}
+
+/* Category Row Items */
+.category-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.category-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cat-name-dot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cat-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.cat-name-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.category-percentage-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+/* Progress bar styles */
+.category-progress-bg {
+  width: 100%;
+  height: 6px;
+  background-color: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.category-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.8s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.category-duration-text {
+  font-size: 10px;
+  font-family: monospace;
+  color: var(--text-muted);
+  align-self: flex-end;
+}
+
+/* Table Category Select Dropdown */
+.table-category-select {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.table-category-select:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border-focus);
+}
+
+.table-category-select:focus {
+  border-color: #a78bfa;
+}
+
+/* Animations */
+@keyframes pulse-glow {
+  0% { transform: scale(0.95); opacity: 0.15; }
+  100% { transform: scale(1.15); opacity: 0.35; }
+}
+
 
 
 
