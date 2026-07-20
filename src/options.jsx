@@ -696,9 +696,9 @@ function Options() {
                 </div>
                 {/* Custom Legend */}
                 <div className="pie-legend">
-                  {distributionData.slice(0, 4).map((entry, i) => (
+                  {distributionData.map((entry, i) => (
                     <div key={entry.name} className="legend-item">
-                      <span className="legend-color-dot" style={{ backgroundColor: CHART_COLORS[i] }}></span>
+                      <span className="legend-color-dot" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }}></span>
                       <span className="legend-name">{entry.name}</span>
                     </div>
                   ))}
