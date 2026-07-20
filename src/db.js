@@ -41,7 +41,7 @@ function getDB() {
  * @param {number} additionalSeconds - Seconds to add
  * @param {boolean} isFullUrl - Whether target is a full URL or root domain
  */
-export async function incrementTime(date, target, domain, additionalSeconds, isFullUrl) {
+export async function incrementTime(date, target, domain, additionalSeconds, isFullUrl, activeSeconds = 0, scrollMaxPercent = 0, contextSwitches = 0) {
   const db = await getDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction([STORE_NAME], 'readwrite');
@@ -55,8 +55,20 @@ export async function incrementTime(date, target, domain, additionalSeconds, isF
         domain,
         seconds: 0,
         isFullUrl,
+        activeSeconds: 0,
+        scrollMaxPercent: 0,
+        contextSwitches: 0,
       };
       record.seconds += additionalSeconds;
+
+      // Backward compatibility for existing records
+      if (record.activeSeconds === undefined) record.activeSeconds = 0;
+      if (record.scrollMaxPercent === undefined) record.scrollMaxPercent = 0;
+      if (record.contextSwitches === undefined) record.contextSwitches = 0;
+
+      record.activeSeconds += activeSeconds;
+      record.scrollMaxPercent = Math.max(record.scrollMaxPercent, scrollMaxPercent);
+      record.contextSwitches += contextSwitches;
       
       const putRequest = store.put(record);
       putRequest.onsuccess = () => resolve(record);

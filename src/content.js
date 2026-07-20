@@ -376,3 +376,73 @@ function initWidget(initialConfig) {
     }
   });
 }
+
+// --- Macro-Engagement Scrapers (100% Local & Privacy-Safe) ---
+
+let activeSeconds = 0;
+let scrollMaxPercent = 0;
+let lastInteractionTime = 0;
+
+// Listen for clicks & key presses to detect active typing/clicking
+function registerInteractionListeners() {
+  const handleInteraction = () => {
+    lastInteractionTime = Date.now();
+  };
+
+  window.addEventListener('keydown', handleInteraction, { passive: true });
+  window.addEventListener('mousedown', handleInteraction, { passive: true });
+
+  // 1-second timer to check if user was active in this second
+  setInterval(() => {
+    if (Date.now() - lastInteractionTime < 1000 && lastInteractionTime > 0) {
+      activeSeconds++;
+    }
+  }, 1000);
+}
+
+// Listen for scrolling to compute maximum scroll depth percentage
+function registerScrollListener() {
+  const updateScrollDepth = () => {
+    const docHeight = document.documentElement.scrollHeight;
+    const winHeight = window.innerHeight;
+    
+    if (docHeight <= winHeight) {
+      scrollMaxPercent = 100;
+      return;
+    }
+
+    const scrollPct = Math.round(((window.scrollY + winHeight) / docHeight) * 100);
+    scrollMaxPercent = Math.max(scrollMaxPercent, Math.min(100, scrollPct));
+  };
+
+  window.addEventListener('scroll', updateScrollDepth, { passive: true });
+  window.addEventListener('resize', updateScrollDepth, { passive: true });
+  
+  // Initial check after paint
+  setTimeout(updateScrollDepth, 500);
+}
+
+// Periodically sync metrics back to background script
+function startMetricsSyncAlarm() {
+  setInterval(() => {
+    if (activeSeconds > 0 || scrollMaxPercent > 0) {
+      chrome.runtime.sendMessage({
+        action: 'syncMetrics',
+        domain,
+        activeSeconds,
+        scrollMaxPercent
+      }, () => {
+        // Reset active seconds on successful reporting
+        activeSeconds = 0;
+      });
+    }
+  }, 10000); // Sync every 10 seconds
+}
+
+// Run scrapers if Chrome context is valid
+if (typeof chrome !== 'undefined' && chrome.runtime) {
+  registerInteractionListeners();
+  registerScrollListener();
+  startMetricsSyncAlarm();
+}
+

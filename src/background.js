@@ -15,6 +15,9 @@ let settings = {
 };
 
 let todayTimes = {}; // In-memory cache of today's time (seconds) per target
+let todayActiveSeconds = {}; // Cache of today's active input seconds per target
+let todayScrollPercent = {}; // Cache of today's max scroll percent per target
+let todaySwitches = {}; // Cache of today's context switches per target
 let currentTrackingDate = getLocalDateString();
 let notifiedLimits = {}; // Key: YYYY-MM-DD_domain, Value: true
 let dailySnoozes = {}; // Key: domain, Value: count
@@ -118,8 +121,14 @@ async function loadTodayStats() {
   try {
     const logs = await getDailyLogs(today);
     todayTimes = {};
+    todayActiveSeconds = {};
+    todayScrollPercent = {};
+    todaySwitches = {};
     logs.forEach((log) => {
       todayTimes[log.target] = log.seconds;
+      todayActiveSeconds[log.target] = log.activeSeconds || 0;
+      todayScrollPercent[log.target] = log.scrollMaxPercent || 0;
+      todaySwitches[log.target] = log.contextSwitches || 0;
     });
   } catch (e) {
     console.error('Failed to load today times', e);
@@ -148,6 +157,20 @@ function startTrackingTab(tab) {
   }
 
   const target = getCleanTarget(tab.url, domain);
+  const isFullUrl = target !== domain;
+  const today = getLocalDateString();
+
+  // Switch context if target has changed
+  if (target !== activeTarget) {
+    todaySwitches[target] = (todaySwitches[target] || 0) + 1;
+    incrementTime(today, target, domain, 0, isFullUrl, 0, 0, 1);
+
+    if (isFullUrl) {
+      todaySwitches[domain] = (todaySwitches[domain] || 0) + 1;
+      incrementTime(today, domain, domain, 0, false, 0, 0, 1);
+    }
+  }
+
   activeTarget = target;
   activeDomain = domain;
   lastCheckpoint = Date.now();
@@ -416,6 +439,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const { domain, title, description } = request;
     handleReportMetadata(domain, title, description);
     sendResponse({ success: true });
+  } else if (request.action === 'syncMetrics') {
+    const { domain, activeSeconds, scrollMaxPercent } = request;
+    handleSyncMetrics(domain, activeSeconds, scrollMaxPercent);
+    sendResponse({ success: true });
   }
   return true; // Keeps messaging port open for async response
 });
@@ -472,5 +499,28 @@ async function handleReportMetadata(domain, title, description) {
   if (category && category !== 'Other') {
     classifiedDomains[cleanDomain] = category;
     await updateSettings({ classifiedDomains });
+  }
+}
+
+async function handleSyncMetrics(domain, activeSeconds, scrollMaxPercent) {
+  if (!domain) return;
+  
+  // Attribute to subpath target if activeTarget is a subpath of this domain
+  const target = activeTarget || domain;
+  const today = getLocalDateString();
+  const isFullUrl = target !== domain;
+
+  // Update in-memory caches
+  todayActiveSeconds[target] = (todayActiveSeconds[target] || 0) + activeSeconds;
+  todayScrollPercent[target] = Math.max((todayScrollPercent[target] || 0), scrollMaxPercent);
+
+  // Increment in database
+  await incrementTime(today, target, domain, 0, isFullUrl, activeSeconds, scrollMaxPercent, 0);
+
+  // If subpath target, also aggregate to parent root domain
+  if (isFullUrl) {
+    todayActiveSeconds[domain] = (todayActiveSeconds[domain] || 0) + activeSeconds;
+    todayScrollPercent[domain] = Math.max((todayScrollPercent[domain] || 0), scrollMaxPercent);
+    await incrementTime(today, domain, domain, 0, false, activeSeconds, scrollMaxPercent, 0);
   }
 }

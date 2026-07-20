@@ -1447,6 +1447,123 @@ input[type="number"] {
   100% { transform: scale(1.15); opacity: 0.35; }
 }
 
+/* Mindful Engagement Insights Section */
+.insights-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-sizing: border-box;
+}
+
+.insights-header {
+  margin-bottom: 20px;
+}
+
+.insights-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-main);
+}
+
+.insights-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 4px 0 0 0;
+}
+
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.insight-metric-item {
+  background-color: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 16px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 120px;
+}
+
+.metric-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.metric-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.metric-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.metric-val-label {
+  font-size: 13px;
+  margin: 4px 0;
+  color: var(--text-main);
+}
+
+.metric-val-label strong {
+  font-size: 14px;
+  color: #a78bfa;
+}
+
+.metric-desc {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-muted);
+  margin: 8px 0 0 0;
+}
+
+/* Badge Theme Status Colors */
+.metric-badge.focus-stable,
+.metric-badge.reading-deep,
+.metric-badge.scroll-moderate,
+.metric-badge.density-high {
+  background-color: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+}
+
+.metric-badge.focus-moderate,
+.metric-badge.reading-shallow,
+.metric-badge.density-balanced {
+  background-color: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
+
+.metric-badge.focus-fragmented,
+.metric-badge.reading-skim,
+.metric-badge.scroll-doom,
+.metric-badge.density-passive {
+  background-color: rgba(244, 114, 182, 0.15);
+  color: #f472b6;
+}
+
+.metric-badge.reading-na,
+.metric-badge.scroll-na,
+.metric-badge.density-na {
+  background-color: var(--bg-active);
+  color: var(--text-muted);
+}
+
+
 
 
 
