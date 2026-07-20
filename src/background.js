@@ -111,7 +111,7 @@ async function initialize() {
   // Initialize tracking for the current active tab
   const activeTab = await getActiveTab();
   if (activeTab) {
-    startTrackingTab(activeTab);
+    await startTrackingTab(activeTab);
   }
 }
 
@@ -149,7 +149,7 @@ async function getActiveTab() {
 
 // --- Tracking Controllers ---
 
-function startTrackingTab(tab) {
+async function startTrackingTab(tab) {
   const domain = getCleanDomain(tab.url);
   if (!domain || tab.incognito || isBlacklisted(domain)) {
     stopTracking();
@@ -163,11 +163,11 @@ function startTrackingTab(tab) {
   // Switch context if target has changed
   if (target !== activeTarget) {
     todaySwitches[target] = (todaySwitches[target] || 0) + 1;
-    incrementTime(today, target, domain, 0, isFullUrl, 0, 0, 1);
+    await incrementTime(today, target, domain, 0, isFullUrl, 0, 0, 1);
 
     if (isFullUrl) {
       todaySwitches[domain] = (todaySwitches[domain] || 0) + 1;
-      incrementTime(today, domain, domain, 0, false, 0, 0, 1);
+      await incrementTime(today, domain, domain, 0, false, 0, 0, 1);
     }
   }
 
@@ -277,7 +277,7 @@ chrome.tabs.onActivated.addListener(async () => {
   await flushCurrentTime();
   const tab = await getActiveTab();
   if (tab) {
-    startTrackingTab(tab);
+    await startTrackingTab(tab);
   } else {
     stopTracking();
   }
@@ -290,7 +290,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
     const activeTab = await getActiveTab();
     if (activeTab && activeTab.id === tabId) {
       await flushCurrentTime();
-      startTrackingTab(activeTab);
+      await startTrackingTab(activeTab);
     }
   }
 });
@@ -305,7 +305,7 @@ chrome.windows.onFocusChanged.addListener(async (windowId) => {
     isChromeFocused = true;
     const tab = await getActiveTab();
     if (tab) {
-      startTrackingTab(tab);
+      await startTrackingTab(tab);
     }
   }
 });
@@ -353,7 +353,7 @@ chrome.storage.onChanged.addListener(async (changes, namespace) => {
       if (domain && isBlacklisted(domain)) {
         stopTracking();
       } else if (!activeTarget && activeTab) {
-        startTrackingTab(activeTab);
+        await startTrackingTab(activeTab);
       }
     }
   }
@@ -437,12 +437,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     });
   } else if (request.action === 'reportMetadata') {
     const { domain, title, description } = request;
-    handleReportMetadata(domain, title, description);
-    sendResponse({ success: true });
+    handleReportMetadata(domain, title, description).then(() => {
+      sendResponse({ success: true });
+    }).catch((err) => {
+      console.error('Metadata report error', err);
+      sendResponse({ success: false, error: err.message });
+    });
+    return true; // Keeps messaging port open for async response
   } else if (request.action === 'syncMetrics') {
     const { domain, activeSeconds, scrollMaxPercent } = request;
-    handleSyncMetrics(domain, activeSeconds, scrollMaxPercent);
-    sendResponse({ success: true });
+    handleSyncMetrics(domain, activeSeconds, scrollMaxPercent).then(() => {
+      sendResponse({ success: true });
+    }).catch((err) => {
+      console.error('Metrics sync error', err);
+      sendResponse({ success: false, error: err.message });
+    });
+    return true; // Keeps messaging port open for async response
   }
   return true; // Keeps messaging port open for async response
 });
@@ -505,8 +515,10 @@ async function handleReportMetadata(domain, title, description) {
 async function handleSyncMetrics(domain, activeSeconds, scrollMaxPercent) {
   if (!domain) return;
   
-  // Attribute to subpath target if activeTarget is a subpath of this domain
-  const target = activeTarget || domain;
+  // Attribute to subpath target only if activeTarget is a subpath of this domain
+  const target = (activeTarget && (activeTarget === domain || activeTarget.startsWith(domain + '/')))
+    ? activeTarget
+    : domain;
   const today = getLocalDateString();
   const isFullUrl = target !== domain;
 

@@ -402,24 +402,39 @@ function registerInteractionListeners() {
 
 // Listen for scrolling to compute maximum scroll depth percentage
 function registerScrollListener() {
-  const updateScrollDepth = () => {
-    const docHeight = document.documentElement.scrollHeight;
-    const winHeight = window.innerHeight;
-    
-    if (docHeight <= winHeight) {
-      scrollMaxPercent = 100;
+  const updateScrollDepth = (event) => {
+    let scrollTop = 0;
+    let scrollHeight = 0;
+    let clientHeight = 0;
+
+    if (event && event.target && event.target !== document && event.target !== window) {
+      // Scroll happened on a nested container (common in modern layouts like Substack/Medium)
+      const el = event.target;
+      scrollTop = el.scrollTop;
+      scrollHeight = el.scrollHeight;
+      clientHeight = el.clientHeight;
+    } else {
+      // Scroll happened on window or document body
+      scrollTop = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+      scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight || 0;
+      clientHeight = window.innerHeight;
+    }
+
+    if (scrollHeight <= clientHeight) {
+      scrollMaxPercent = Math.max(scrollMaxPercent, 100);
       return;
     }
 
-    const scrollPct = Math.round(((window.scrollY + winHeight) / docHeight) * 100);
+    const scrollPct = Math.round(((scrollTop + clientHeight) / scrollHeight) * 100);
     scrollMaxPercent = Math.max(scrollMaxPercent, Math.min(100, scrollPct));
   };
 
-  window.addEventListener('scroll', updateScrollDepth, { passive: true });
-  window.addEventListener('resize', updateScrollDepth, { passive: true });
+  // Intercept scroll events on any element in the document tree using capture phase (true)
+  window.addEventListener('scroll', updateScrollDepth, true);
+  window.addEventListener('resize', () => updateScrollDepth(), { passive: true });
   
   // Initial check after paint
-  setTimeout(updateScrollDepth, 500);
+  setTimeout(() => updateScrollDepth(), 500);
 }
 
 // Periodically sync metrics back to background script

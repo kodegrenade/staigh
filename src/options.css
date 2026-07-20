@@ -1556,6 +1556,7 @@ input[type="number"] {
   color: #f472b6;
 }
 
+.metric-badge.focus-na,
 .metric-badge.reading-na,
 .metric-badge.scroll-na,
 .metric-badge.density-na {

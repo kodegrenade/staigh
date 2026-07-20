@@ -101,6 +101,7 @@ const CATEGORY_MAP = {
   'developer.mozilla.org': 'Learning & Reference',
   'dev.to': 'Learning & Reference',
   'medium.com': 'Learning & Reference',
+  'substack.com': 'Learning & Reference',
   'coursera.org': 'Learning & Reference',
   'udemy.com': 'Learning & Reference',
   'stackexchange.com': 'Learning & Reference',
@@ -168,19 +169,34 @@ function getDomainCategory(domain, overrides = {}, classified = {}) {
   if (!domain) return 'Other';
   const cleanDomain = domain.split('/')[0].toLowerCase();
 
-  // Tier 3: User Overrides
+  // Tier 3: User Overrides (check exact first, then suffix)
   if (overrides[cleanDomain]) {
     return overrides[cleanDomain];
   }
+  const overrideMatch = Object.keys(overrides).find(key => 
+    cleanDomain === key || cleanDomain.endsWith('.' + key)
+  );
+  if (overrideMatch) {
+    return overrides[overrideMatch];
+  }
 
   // Tier 1: Suffix Dictionary Lookup
-  if (CATEGORY_MAP[cleanDomain]) {
-    return CATEGORY_MAP[cleanDomain];
+  const dictMatch = Object.keys(CATEGORY_MAP).find(key => 
+    cleanDomain === key || cleanDomain.endsWith('.' + key)
+  );
+  if (dictMatch) {
+    return CATEGORY_MAP[dictMatch];
   }
 
   // Tier 2.1: Classified cache from metadata descriptions
   if (classified[cleanDomain]) {
     return classified[cleanDomain];
+  }
+  const classifiedMatch = Object.keys(classified).find(key => 
+    cleanDomain === key || cleanDomain.endsWith('.' + key)
+  );
+  if (classifiedMatch) {
+    return classified[classifiedMatch];
   }
 
   // Tier 2.2: Heuristic regex domain check
@@ -246,7 +262,7 @@ function Options() {
     loadSettings();
   }, []);
 
-  // Listen for storage settings updates to sync in real-time
+  // Listen for storage settings updates to sync in real-time, and visibility changes to reload data
   useEffect(() => {
     if (typeof chrome === 'undefined' || !chrome.storage) return;
     const handleStorageChange = (changes, areaName) => {
@@ -256,9 +272,25 @@ function Options() {
         document.documentElement.setAttribute('data-theme', newSettings.theme || 'dark');
       }
     };
+    
+    const handleFocusChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadLogs();
+        loadSettings();
+      }
+    };
+
     chrome.storage.onChanged.addListener(handleStorageChange);
-    return () => chrome.storage.onChanged.removeListener(handleStorageChange);
-  }, []);
+    document.addEventListener('visibilitychange', handleFocusChange);
+    window.addEventListener('focus', handleFocusChange);
+
+    return () => {
+      chrome.storage.onChanged.removeListener(handleStorageChange);
+      document.removeEventListener('visibilitychange', handleFocusChange);
+      window.removeEventListener('focus', handleFocusChange);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateRange]);
 
   useEffect(() => {
     loadLogs();
@@ -539,8 +571,19 @@ function Options() {
     };
   }, [siteBreakdown, settings.categoryOverrides, settings.classifiedDomains]);
 
+
+
   // Mindful Engagement Insights calculations
   const behavioralInsights = React.useMemo(() => {
+    const formatMins = (mins) => {
+      const m = Math.round(mins);
+      if (m < 60) return `${m} min`;
+      const hrs = Math.floor(m / 60);
+      const remaining = m % 60;
+      const hrLabel = hrs === 1 ? 'hr' : 'hrs';
+      return remaining === 0 ? `${hrs} ${hrLabel}` : `${hrs} ${hrLabel} ${remaining} min`;
+    };
+
     let totalSwitches = 0;
     
     let learningSeconds = 0;
@@ -582,57 +625,91 @@ function Options() {
       }
     });
 
-    // 1. Focus Stability Index
+    // Compute total tracked time across all sites
+    const totalTrackedSeconds = siteBreakdown.reduce((sum, site) => sum + site.seconds, 0);
+
+    // 1. Focus Stability Index (Context switches relative to total active hours)
+    const totalHours = totalTrackedSeconds / 3600;
+    const switchesPerHour = totalHours > 0 ? (totalSwitches / totalHours) : 0;
     let stabilityRating = 'Stable Focus';
     let stabilityClass = 'focus-stable';
     let stabilityDesc = 'Excellent stability. Minimal distractions or window swapping.';
-    if (totalSwitches > 35) {
-      stabilityRating = 'High Swapping';
+    
+    if (totalTrackedSeconds < 60) {
+      stabilityRating = 'N/A';
+      stabilityClass = 'focus-na';
+      stabilityDesc = 'Insufficient data to compute focus stability.';
+    } else if (switchesPerHour > 18) {
+      stabilityRating = 'Fragmented Focus';
       stabilityClass = 'focus-fragmented';
-      stabilityDesc = 'Frequent tab swapping detected. Try batching tasks to save cognitive energy.';
-    } else if (totalSwitches > 15) {
+      stabilityDesc = `High switching rate (${Math.round(switchesPerHour)}/hr). Try batching tasks to save cognitive energy.`;
+    } else if (switchesPerHour > 6) {
       stabilityRating = 'Moderate Swapping';
       stabilityClass = 'focus-moderate';
-      stabilityDesc = 'Some switching between tasks. Normal for multi-tasking sessions.';
+      stabilityDesc = `Some switching between tasks (${Math.round(switchesPerHour)}/hr). Normal for multi-tasking sessions.`;
+    } else {
+      stabilityDesc = `Very low switching rate (${Math.round(switchesPerHour)}/hr). You are staying in flow.`;
     }
 
-    // 2. Deep Reading vs. Skimming Index (Learning Sites)
+    // 2. Reading Depth (Learning & Reference Sites)
     const avgLearningScroll = learningCount > 0 ? Math.round(learningScrollSum / learningCount) : 0;
     let readingRating = 'N/A';
     let readingDesc = 'No learning resource sessions recorded in this period.';
     let readingClass = 'reading-na';
     if (learningSeconds > 0) {
-      const readingRatio = avgLearningScroll / (learningSeconds / 60); // scroll % per minute
-      if (readingRatio > 3 && avgLearningScroll > 50) {
-        readingRating = 'Skimming Content';
-        readingClass = 'reading-skim';
-        readingDesc = 'High scroll depth in very short time. You are scanning pages quickly.';
-      } else if (avgLearningScroll > 40) {
-        readingRating = 'Attentive Reading';
-        readingClass = 'reading-deep';
-        readingDesc = 'Consistent pace and deep scroll depth. Solid material absorption!';
-      } else {
-        readingRating = 'Shallow Reading';
+      const learningMinutes = learningSeconds / 60;
+      const scrollRate = learningMinutes > 0 ? (avgLearningScroll / learningMinutes) : 0; // scroll pct per minute
+
+      if (learningSeconds < 30) {
+        readingRating = 'Quick Bounce';
         readingClass = 'reading-shallow';
-        readingDesc = 'Short reading depth. You left early or scanned only the top section.';
+        readingDesc = 'Left page almost immediately. No meaningful reading done.';
+      } else if (avgLearningScroll >= 50 && learningMinutes >= 2.5) {
+        if (scrollRate < 18) {
+          readingRating = 'Attentive Reading';
+          readingClass = 'reading-deep';
+          readingDesc = `Slow, steady scrolling (${Math.round(scrollRate)}%/min) over ${formatMins(learningMinutes)}. Excellent material absorption!`;
+        } else {
+          readingRating = 'Skimming Content';
+          readingClass = 'reading-skim';
+          readingDesc = `Fast scrolling pace (${Math.round(scrollRate)}%/min) reaching deep scroll depth. Good for scanning.`;
+        }
+      } else if (avgLearningScroll < 50 && learningMinutes >= 2.5) {
+        readingRating = 'Partial Reading';
+        readingClass = 'reading-shallow';
+        readingDesc = `Spent ${formatMins(learningMinutes)}, but scrolled less than half the page. Left mid-way.`;
+      } else {
+        readingRating = 'Quick Lookup';
+        readingClass = 'reading-skim';
+        readingDesc = `Spent only ${Math.round(learningSeconds)}s scanning the resource page.`;
       }
     }
 
-    // 3. Doom-Scrolling Rate (Social Sites)
+    // 3. Feed Scrolling Rate (Social Sites)
     const avgSocialScroll = socialCount > 0 ? Math.round(socialScrollSum / socialCount) : 0;
     let scrollRating = 'N/A';
     let scrollDesc = 'No social media sessions logged.';
     let scrollClass = 'scroll-na';
     if (socialSeconds > 0) {
-      const scrollSpeed = avgSocialScroll / (socialSeconds / 60); // scroll pct per minute
-      if (scrollSpeed > 2.5 && avgSocialScroll > 60) {
+      const socialMinutes = socialSeconds / 60;
+      const scrollSpeed = socialMinutes > 0 ? (avgSocialScroll / socialMinutes) : 0; // scroll pct per minute
+
+      if (socialSeconds < 30) {
+        scrollRating = 'Short Visit';
+        scrollClass = 'scroll-moderate';
+        scrollDesc = 'Brief social check-in, no extensive scrolling.';
+      } else if (scrollSpeed > 25 && avgSocialScroll > 60 && socialMinutes >= 2) {
         scrollRating = 'Doom-Scrolling';
         scrollClass = 'scroll-doom';
-        scrollDesc = 'Rapid downward scrolling over a sustained duration. Mindful break advised!';
+        scrollDesc = `Rapid scroll rate (${Math.round(scrollSpeed)}%/min) for ${formatMins(socialMinutes)} of social time. Mindful break advised!`;
+      } else if (avgSocialScroll > 45 && socialMinutes >= 5) {
+        scrollRating = 'Passive Browsing';
+        scrollClass = 'scroll-doom';
+        scrollDesc = `Sustained scroll depth (${avgSocialScroll}%) over a long social session (${formatMins(socialMinutes)}).`;
       } else {
-        scrollRating = 'Moderate Browsing';
+        scrollRating = 'Mindful Check-in';
         scrollClass = 'scroll-moderate';
-        scrollDesc = 'Healthy content absorption. Controlled feed scrolling.';
+        scrollDesc = `Controlled, healthy consumption pace (${Math.round(scrollSpeed)}%/min).`;
       }
     }
 
@@ -642,19 +719,25 @@ function Options() {
     let densityDesc = 'No work or coding sessions tracked.';
     let densityClass = 'density-na';
     if (productivitySeconds > 0) {
+      const productivityMinutes = productivitySeconds / 60;
       densityPercentage = Math.min(100, Math.round((productivityActiveSeconds / productivitySeconds) * 100));
-      if (densityPercentage > 60) {
-        densityRating = 'High Input Density';
-        densityClass = 'density-high';
-        densityDesc = 'You are actively writing, coding, or interacting. Excellent active output!';
-      } else if (densityPercentage > 25) {
-        densityRating = 'Balanced Input';
+
+      if (productivitySeconds < 60) {
+        densityRating = 'Short Session';
         densityClass = 'density-balanced';
-        densityDesc = 'Average input density. A mix of passive reading and active execution.';
+        densityDesc = 'Productivity session too short to measure activity density.';
+      } else if (densityPercentage > 55) {
+        densityRating = 'High Execution';
+        densityClass = 'density-high';
+        densityDesc = `Very active typing/clicking ratio (${densityPercentage}%) over ${formatMins(productivityMinutes)} of work. Active output!`;
+      } else if (densityPercentage >= 20) {
+        densityRating = 'Active Synthesis';
+        densityClass = 'density-balanced';
+        densityDesc = `Healthy interaction density (${densityPercentage}%) over ${formatMins(productivityMinutes)}. A mix of reading and writing.`;
       } else {
-        densityRating = 'Passive Staring';
+        densityRating = 'Passive Monitor';
         densityClass = 'density-passive';
-        densityDesc = 'Low interaction density. Tab was mostly idle in the foreground.';
+        densityDesc = `Low interaction ratio (${densityPercentage}%) over ${formatMins(productivityMinutes)}. Mostly passive viewing/referencing.`;
       }
     }
 
@@ -1171,9 +1254,6 @@ function Options() {
                         {behavioralInsights.stabilityRating}
                       </span>
                     </div>
-                    <p className="metric-val-label">
-                      Context Switches: <strong>{behavioralInsights.totalSwitches}</strong>
-                    </p>
                     <p className="metric-desc">{behavioralInsights.stabilityDesc}</p>
                   </div>
 
@@ -1185,9 +1265,6 @@ function Options() {
                         {behavioralInsights.readingRating}
                       </span>
                     </div>
-                    <p className="metric-val-label">
-                      Avg. Scroll Depth: <strong>{behavioralInsights.avgLearningScroll}%</strong>
-                    </p>
                     <p className="metric-desc">{behavioralInsights.readingDesc}</p>
                   </div>
 
@@ -1199,9 +1276,6 @@ function Options() {
                         {behavioralInsights.scrollRating}
                       </span>
                     </div>
-                    <p className="metric-val-label">
-                      Avg. Social Scroll: <strong>{behavioralInsights.avgSocialScroll}%</strong>
-                    </p>
                     <p className="metric-desc">{behavioralInsights.scrollDesc}</p>
                   </div>
 
@@ -1213,9 +1287,6 @@ function Options() {
                         {behavioralInsights.densityRating}
                       </span>
                     </div>
-                    <p className="metric-val-label">
-                      Active Input Ratio: <strong>{behavioralInsights.densityPercentage}%</strong>
-                    </p>
                     <p className="metric-desc">{behavioralInsights.densityDesc}</p>
                   </div>
                 </div>
