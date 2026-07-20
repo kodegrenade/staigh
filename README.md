@@ -18,6 +18,10 @@ When you set a daily limit for a domain, Staigh injects a sleek, draggable count
 - The widget can be dragged anywhere on the screen, and it automatically remembers its position across page reloads.
 - The border turns yellow when you have under five minutes remaining, and pulses red with a "Time's Up!" notification once the limit expires.
 - **Snooze Option**: When the timer reaches the warning phase (under 5 minutes) or is fully expired, a **Snooze** button appears on the widget. Clicking it adds 10 minutes to your daily allowance (maximum 3 times per day) and resumes ticking.
+- **Bento Collapsible Pill**: To keep your workspace clean, you can collapse the countdown card into a sleek, wide branded horizontal pill showing the drag handle, brand text, limit label, and live digital timer.
+
+### Granular Subpath URL Tracking
+You are not restricted to tracking entire root domains. With Staigh, you can track specific subpath URLs (e.g., `github.com/pulls` or `youtube.com/watch`) to monitor time spent on exact parts of a website. The analytics engine automatically groups subpaths independently and adjusts parent root domain logs to prevent double-counting.
 
 ### Popup Quick-Controls
 Manage your tracking configurations instantly without opening the dashboard. Click the extension toolbar icon to open the popup:
@@ -33,6 +37,14 @@ To make configuration faster and easier, suggestion strips are rendered below th
 The analytical dashboard provides a visual breakdown of your daily activity:
 - Daily trend graphs (Recharts Bar chart) and distribution breakdown (Recharts Pie chart) styled with theme-adaptive Carbon-Bento color tokens.
 - **Domain Filter**: A dropdown next to the Activity Trend chart allows you to filter historical bar graphs by specific domains, letting you drill down into individual site history.
+- **Dynamic Tooltip Formatting**: Hover tooltips on both charts format spent durations in a clean, human-readable `Xh Ym` format once usage exceeds 60 minutes.
+
+### Browsing Personas & Behavioral Insights
+Discover your digital personality and gain a deeper awareness of your browsing habits with interactive, gamified profile insights:
+- **Your Browsing Persona**: Staigh automatically analyzes your time distribution over any selected duration to assign you one of 5 custom browsing personalities (such as *Focus Maestro*, *Social Butterfly*, *Media Streamer*, *Knowledge Scholar*, or *Balanced Navigator*). Your profile is presented in a sleek, glassmorphic card showcasing your Focus Score, Leisure Ratio, and top visited domain.
+- **Visual Category Profile**: See exactly where your hours go with a clean, color-coded dashboard breakdown showing time spent across work, social media, entertainment, learning, and utilities.
+- **Smart Offline Categorization**: Websites are classified automatically and privately on your computer (with no network requests) by analyzing page titles and meta descriptions.
+- **Customizable Overrides**: You have complete control. If you use a site like YouTube for educational research rather than leisure, you can reassign its category using a simple dropdown next to the domain name. All dashboard metrics and persona charts update reactively in real-time.
 
 ### User-Centric Limit Controls
 - Setting hours and minutes is separated into clean input fields, compiling the total daily limit on the fly.
