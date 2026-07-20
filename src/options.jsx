@@ -479,6 +479,15 @@ function Options() {
     return `${seconds}s`;
   }
 
+  function formatTimeValue(minutes) {
+    if (minutes >= 60) {
+      const hrs = Math.floor(minutes / 60);
+      const mins = Math.round(minutes % 60);
+      return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
+    }
+    return `${Math.round(minutes)} min`;
+  }
+
   function getFaviconUrl(domain) {
     const host = domain.split('/')[0];
     return `https://www.google.com/s2/favicons?domain=${host}&sz=64`;
@@ -633,6 +642,7 @@ function Options() {
                         <XAxis dataKey="label" stroke={axisColor} fontSize={11} tickLine={false} />
                         <YAxis stroke={axisColor} fontSize={11} tickLine={false} />
                         <Tooltip
+                          formatter={(value) => [formatTimeValue(value), 'Time Spent']}
                           contentStyle={{
                             backgroundColor: tooltipBg,
                             borderColor: tooltipBorder,
@@ -670,7 +680,7 @@ function Options() {
                           ))}
                         </Pie>
                         <Tooltip
-                          formatter={(value) => [`${value} min`, 'Time Spent']}
+                          formatter={(value) => [formatTimeValue(value), 'Time Spent']}
                           contentStyle={{
                             backgroundColor: tooltipBg,
                             borderColor: tooltipBorder,
