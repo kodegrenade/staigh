@@ -872,6 +872,14 @@ input[type="number"] {
   color: var(--text-main);
 }
 
+.local-backup-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;

@@ -18,7 +18,6 @@ import {
   Settings,
   BarChart2,
   Download,
-  Upload,
   Clock,
   Lock,
   Eye,
@@ -1577,38 +1576,32 @@ function Options() {
                 <div className="backup-icon-wrapper purple">
                   <Download size={24} />
                 </div>
-                <h3>Export Database Backup</h3>
-                <p>Save all website limits, settings, and historical browsing logs into a local JSON backup file.</p>
-                <button className="btn-backup-action" onClick={handleExport}>
-                  <span>Export Backup</span>
-                </button>
+                <h3>Local File Backup</h3>
+                <p>Export your settings and time logs to a local JSON backup file, or restore data from an existing backup.</p>
+                <div className="local-backup-actions">
+                  <button className="btn-backup-action" onClick={handleExport}>
+                    <span>Export Backup</span>
+                  </button>
+                  <div className="import-wrapper">
+                    <label htmlFor="import-file" className="btn-backup-action import-lbl">
+                      <span>Import Backup</span>
+                    </label>
+                    <input
+                      id="import-file"
+                      type="file"
+                      accept=".json"
+                      onChange={handleImport}
+                      style={{ display: 'none' }}
+                    />
+                  </div>
+                </div>
                 {backupStatus.card === 'export' && backupStatus.message && (
                   <div className={`import-alert ${backupStatus.type}`} style={{ marginTop: '12px' }}>
                     {backupStatus.message}
                   </div>
                 )}
-              </div>
-
-              <div className="backup-card">
-                <div className="backup-icon-wrapper indigo">
-                  <Upload size={24} />
-                </div>
-                <h3>Import Database Backup</h3>
-                <p>Restore settings and time logs from an existing JSON backup file. This replaces current logs.</p>
-                <div className="import-wrapper">
-                  <label htmlFor="import-file" className="btn-backup-action import-lbl">
-                    <span>Choose Backup File</span>
-                  </label>
-                  <input
-                    id="import-file"
-                    type="file"
-                    accept=".json"
-                    onChange={handleImport}
-                    style={{ display: 'none' }}
-                  />
-                </div>
                 {backupStatus.card === 'import' && backupStatus.message && (
-                  <div className={`import-alert ${backupStatus.type}`}>
+                  <div className={`import-alert ${backupStatus.type}`} style={{ marginTop: '12px' }}>
                     {backupStatus.message}
                   </div>
                 )}
@@ -1633,7 +1626,7 @@ function Options() {
                       <button className="btn-backup-action" onClick={handleSyncNow} disabled={syncing}>
                         <span>{syncing ? 'Syncing...' : 'Sync Now'}</span>
                       </button>
-                      <button className="btn-backup-action secondary" onClick={handleDisconnectSync}>
+                      <button className="btn-backup-action danger" onClick={handleDisconnectSync}>
                         <span>Disconnect</span>
                       </button>
                     </div>
