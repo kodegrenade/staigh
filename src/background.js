@@ -1,4 +1,5 @@
 import { incrementTime, getDailyLogs, getSettings, updateSettings } from './db.js';
+import { runSyncCycle } from './sync.js';
 
 // --- State Variables ---
 let activeTarget = null; // Either root domain or full URL
@@ -107,6 +108,9 @@ async function initialize() {
 
   // Set up alarm for periodic time flushing (every 10 seconds to keep stats accurate and responsive)
   chrome.alarms.create('flush_time_alarm', { periodInMinutes: 0.166 }); // ~10 seconds
+  
+  // Set up alarm for periodic background sync (every 30 minutes)
+  chrome.alarms.create('sync_data_alarm', { periodInMinutes: 30 });
 
   // Initialize tracking for the current active tab
   const activeTab = await getActiveTab();
@@ -320,10 +324,16 @@ chrome.idle.onStateChanged.addListener(async (newState) => {
   }
 });
 
-// Listen for periodic alarms to flush time logs
+// Listen for periodic alarms to flush time logs and trigger syncs
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === 'flush_time_alarm') {
     await flushCurrentTime();
+  } else if (alarm.name === 'sync_data_alarm') {
+    try {
+      await runSyncCycle(false);
+    } catch (err) {
+      console.warn('Periodic auto-sync cycle failed:', err);
+    }
   }
 });
 

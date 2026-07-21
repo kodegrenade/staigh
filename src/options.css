@@ -828,6 +828,50 @@ input[type="number"] {
   color: var(--red-accent);
 }
 
+.backup-icon-wrapper.green {
+  background-color: rgba(52, 211, 153, 0.05);
+  color: var(--green-accent);
+}
+
+.sync-status-info {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+}
+
+.sync-text-status, .sync-text-time {
+  margin: 4px 0 !important;
+  font-size: 12px !important;
+}
+
+.sync-text-status strong {
+  color: var(--green-accent);
+}
+
+.sync-text-time strong {
+  color: var(--text-main);
+}
+
+.sync-actions-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.btn-backup-action.secondary {
+  background-color: transparent;
+  border-color: var(--border-color);
+  color: var(--text-muted);
+}
+
+.btn-backup-action.secondary:hover {
+  background-color: rgba(255, 255, 255, 0.02);
+  color: var(--text-main);
+}
+
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;

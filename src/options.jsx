@@ -26,6 +26,7 @@ import {
   Sun,
   Moon,
   Pencil,
+  Cloud,
 } from 'lucide-react';
 import {
   getLogsInRange,
@@ -35,6 +36,7 @@ import {
   importData,
   clearAllLogs,
 } from './db.js';
+import { runSyncCycle, logout } from './sync.js';
 import './options.css';
 
 const CHART_COLORS = ['#a78bfa', '#818cf8', '#60a5fa', '#34d399', '#fbbf24', '#f472b6', '#2dd4bf'];
@@ -810,6 +812,56 @@ function Options() {
     showBackupStatus('reset', 'success', 'All tracking history has been successfully cleared.');
   }
 
+  const [syncing, setSyncing] = useState(false);
+
+  async function handleConnectSync() {
+    setSyncing(true);
+    try {
+      const result = await runSyncCycle(true);
+      if (result.success) {
+        const updatedSettings = await getSettings();
+        setSettings(updatedSettings);
+        showBackupStatus('sync', 'success', 'Successfully connected and synced to Google Drive!');
+        loadLogs();
+      }
+    } catch (err) {
+      showBackupStatus('sync', 'error', `Connection failed: ${err.message}`);
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function handleSyncNow() {
+    setSyncing(true);
+    try {
+      const result = await runSyncCycle(false);
+      if (result.success) {
+        const updatedSettings = await getSettings();
+        setSettings(updatedSettings);
+        showBackupStatus('sync', 'success', 'Database sync completed successfully.');
+        loadLogs();
+      }
+    } catch (err) {
+      showBackupStatus('sync', 'error', `Sync failed: ${err.message}`);
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function handleDisconnectSync() {
+    setSyncing(true);
+    try {
+      await logout();
+      const updated = await updateSettings({ deviceId: '', lastSyncTime: '' });
+      setSettings(updated);
+      showBackupStatus('sync', 'success', 'Disconnected from Google Drive sync.');
+    } catch (err) {
+      showBackupStatus('sync', 'error', `Disconnect failed: ${err.message}`);
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   // --- UI Format Helpers ---
 
   function formatDuration(totalSecs) {
@@ -1557,6 +1609,43 @@ function Options() {
                 </div>
                 {backupStatus.card === 'import' && backupStatus.message && (
                   <div className={`import-alert ${backupStatus.type}`}>
+                    {backupStatus.message}
+                  </div>
+                )}
+              </div>
+
+              <div className="backup-card">
+                <div className="backup-icon-wrapper green">
+                  <Cloud size={24} />
+                </div>
+                <h3>Google Drive Cloud Sync</h3>
+                <p>Sync settings, limits, and browsing history across multiple desktops using your personal Google Drive.</p>
+                
+                {settings.lastSyncTime ? (
+                  <div className="sync-status-info">
+                    <p className="sync-text-status">
+                      Authenticated: <strong>{settings.deviceId || 'Primary Device'}</strong>
+                    </p>
+                    <p className="sync-text-time">
+                      Last Synced: <strong>{new Date(settings.lastSyncTime).toLocaleString()}</strong>
+                    </p>
+                    <div className="sync-actions-group">
+                      <button className="btn-backup-action" onClick={handleSyncNow} disabled={syncing}>
+                        <span>{syncing ? 'Syncing...' : 'Sync Now'}</span>
+                      </button>
+                      <button className="btn-backup-action secondary" onClick={handleDisconnectSync}>
+                        <span>Disconnect</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button className="btn-backup-action" onClick={handleConnectSync} disabled={syncing}>
+                    <span>{syncing ? 'Connecting...' : 'Connect Google Drive'}</span>
+                  </button>
+                )}
+
+                {backupStatus.card === 'sync' && backupStatus.message && (
+                  <div className={`import-alert ${backupStatus.type}`} style={{ marginTop: '12px' }}>
                     {backupStatus.message}
                   </div>
                 )}

@@ -80,6 +80,22 @@ export async function incrementTime(date, target, domain, additionalSeconds, isF
 }
 
 /**
+ * Overwrites or inserts a single log record in IndexedDB.
+ * @param {Object} record - The full log record containing date, target, domain, seconds, etc.
+ */
+export async function saveLog(record) {
+  const db = await getDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME], 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.put(record);
+    request.onsuccess = () => resolve(record);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+
+/**
  * Fetch all logs for a specific date.
  * @param {string} date - Format YYYY-MM-DD
  */
@@ -265,3 +281,18 @@ export async function importData(data) {
     clearRequest.onerror = () => reject(clearRequest.error);
   });
 }
+
+/**
+ * Fetch all logs from IndexedDB.
+ */
+export async function getAllLogs() {
+  const db = await getDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME], 'readonly');
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+

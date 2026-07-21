@@ -16,8 +16,15 @@
     "storage",
     "unlimitedStorage",
     "notifications",
-    "alarms"
+    "alarms",
+    "identity"
   ],
+  "oauth2": {
+    "client_id": "602670590358-ms9545eq14g6726lor795gc3e5s1ctaj.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/drive.appdata"
+    ]
+  },
   "background": {
     "service_worker": "background.js",
     "type": "module"
