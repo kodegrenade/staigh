@@ -1,6 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Staigh",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwm0/Fohn0tlbnQjkrWaLlN+ObzLg5Mdxo2b9sw/JtwqccadWfAPynL7TFnqsK5WPq+0YsEQx+xPub7nyc56v4r68XfAOPesDKkIuBcnxRqMzD3Jy4888Gv0CYwIiitOI58tWKkfYmjr21iRnPgxpln/8MkADQpDe2B24VwFzNokiK8K0UY+ZufdGX4+cnFyFns59mmmf5tu3MWRVh/H+6SsXU/QmoYhTKkKMaIAilRfPJ8b1iyfk6sNgteZHlzRcmmNfQqhOSmPjMt4AbxF23Gw1xGVITiwvo6UHgau/l3nCBJ8ri+TlbgIF898Ko03b9TCrd/NpXckMbNXYssxmaQIDAQAB",
   "version": "1.0.2",
   "description": "Tracks how long you spend on websites with detailed glassmorphic charts, blocklists, and daily limits.",
   "icons": {
