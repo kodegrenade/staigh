@@ -48,7 +48,7 @@ export async function incrementTime(date, target, domain, additionalSeconds, isF
     const store = transaction.objectStore(STORE_NAME);
     const getRequest = store.get([date, target]);
 
-    getRequest.onsuccess = () => {
+    getRequest.onsuccess = async () => {
       const record = getRequest.result || {
         date,
         target,
@@ -59,16 +59,37 @@ export async function incrementTime(date, target, domain, additionalSeconds, isF
         scrollMaxPercent: 0,
         contextSwitches: 0,
       };
-      record.seconds += additionalSeconds;
 
-      // Backward compatibility for existing records
-      if (record.activeSeconds === undefined) record.activeSeconds = 0;
-      if (record.scrollMaxPercent === undefined) record.scrollMaxPercent = 0;
-      if (record.contextSwitches === undefined) record.contextSwitches = 0;
+      const currentSettings = await getSettings();
+      const localDeviceId = currentSettings.deviceId || 'local';
 
-      record.activeSeconds += activeSeconds;
-      record.scrollMaxPercent = Math.max(record.scrollMaxPercent, scrollMaxPercent);
-      record.contextSwitches += contextSwitches;
+      // Initialize maps
+      if (!record.deviceSeconds) record.deviceSeconds = {};
+      if (!record.deviceActiveSeconds) record.deviceActiveSeconds = {};
+      if (!record.deviceContextSwitches) record.deviceContextSwitches = {};
+
+      // Migrate existing un-mapped values (backward compatibility)
+      if (record.seconds > 0 && Object.keys(record.deviceSeconds).length === 0) {
+        record.deviceSeconds[localDeviceId] = record.seconds;
+      }
+      if (record.activeSeconds > 0 && Object.keys(record.deviceActiveSeconds).length === 0) {
+        record.deviceActiveSeconds[localDeviceId] = record.activeSeconds;
+      }
+      if (record.contextSwitches > 0 && Object.keys(record.deviceContextSwitches).length === 0) {
+        record.deviceContextSwitches[localDeviceId] = record.contextSwitches;
+      }
+
+      // Increment values for the local device
+      record.deviceSeconds[localDeviceId] = (record.deviceSeconds[localDeviceId] || 0) + additionalSeconds;
+      record.deviceActiveSeconds[localDeviceId] = (record.deviceActiveSeconds[localDeviceId] || 0) + activeSeconds;
+      record.deviceContextSwitches[localDeviceId] = (record.deviceContextSwitches[localDeviceId] || 0) + contextSwitches;
+
+      // Recompute totals
+      record.seconds = Object.values(record.deviceSeconds).reduce((sum, val) => sum + val, 0);
+      record.activeSeconds = Object.values(record.deviceActiveSeconds).reduce((sum, val) => sum + val, 0);
+      record.contextSwitches = Object.values(record.deviceContextSwitches).reduce((sum, val) => sum + val, 0);
+
+      record.scrollMaxPercent = Math.max(record.scrollMaxPercent || 0, scrollMaxPercent);
       
       const putRequest = store.put(record);
       putRequest.onsuccess = () => resolve(record);

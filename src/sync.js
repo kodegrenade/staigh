@@ -187,26 +187,67 @@ export function mergeSettings(local, remote) {
  * Core log merging logic.
  * Combines logs from all remote device profiles and local IndexedDB.
  */
-export function mergeLogs(localLogs, allRemoteLogs) {
+export function mergeLogs(localLogs, allRemoteLogs, localDeviceId) {
   const logsMap = {};
+
+  const mergeMaps = (mapA, mapB) => {
+    const merged = { ...mapA };
+    Object.entries(mapB || {}).forEach(([devId, val]) => {
+      merged[devId] = Math.max(merged[devId] || 0, val || 0);
+    });
+    return merged;
+  };
 
   // Load all local logs first
   localLogs.forEach((log) => {
     const key = `${log.date}_${log.target}`;
     logsMap[key] = { ...log };
+
+    // Ensure maps exist on local log
+    if (!logsMap[key].deviceSeconds) logsMap[key].deviceSeconds = {};
+    if (!logsMap[key].deviceActiveSeconds) logsMap[key].deviceActiveSeconds = {};
+    if (!logsMap[key].deviceContextSwitches) logsMap[key].deviceContextSwitches = {};
+
+    // If local log has values but no map, attribute to local device ID
+    if (log.seconds > 0 && Object.keys(logsMap[key].deviceSeconds).length === 0) {
+      logsMap[key].deviceSeconds[localDeviceId] = log.seconds;
+    }
+    if (log.activeSeconds > 0 && Object.keys(logsMap[key].deviceActiveSeconds).length === 0) {
+      logsMap[key].deviceActiveSeconds[localDeviceId] = log.activeSeconds;
+    }
+    if (log.contextSwitches > 0 && Object.keys(logsMap[key].deviceContextSwitches).length === 0) {
+      logsMap[key].deviceContextSwitches[localDeviceId] = log.contextSwitches;
+    }
   });
 
   // Merge all remote logs
   allRemoteLogs.forEach((log) => {
     const key = `${log.date}_${log.target}`;
+    const remoteSecondsMap = log.deviceSeconds || {};
+    const remoteActiveMap = log.deviceActiveSeconds || {};
+    const remoteSwitchesMap = log.deviceContextSwitches || {};
+
     if (logsMap[key]) {
       const existing = logsMap[key];
-      existing.seconds = Math.round(existing.seconds + log.seconds);
-      existing.activeSeconds = Math.round((existing.activeSeconds || 0) + (log.activeSeconds || 0));
-      existing.contextSwitches = Math.round((existing.contextSwitches || 0) + (log.contextSwitches || 0));
-      existing.scrollMaxPercent = Math.max((existing.scrollMaxPercent || 0), (log.scrollMaxPercent || 0));
+
+      // Merge maps
+      existing.deviceSeconds = mergeMaps(existing.deviceSeconds, remoteSecondsMap);
+      existing.deviceActiveSeconds = mergeMaps(existing.deviceActiveSeconds, remoteActiveMap);
+      existing.deviceContextSwitches = mergeMaps(existing.deviceContextSwitches, remoteSwitchesMap);
+
+      // Recompute totals
+      existing.seconds = Object.values(existing.deviceSeconds).reduce((sum, val) => sum + val, 0);
+      existing.activeSeconds = Object.values(existing.deviceActiveSeconds).reduce((sum, val) => sum + val, 0);
+      existing.contextSwitches = Object.values(existing.deviceContextSwitches).reduce((sum, val) => sum + val, 0);
+
+      existing.scrollMaxPercent = Math.max(existing.scrollMaxPercent || 0, log.scrollMaxPercent || 0);
     } else {
-      logsMap[key] = { ...log };
+      logsMap[key] = {
+        ...log,
+        deviceSeconds: { ...remoteSecondsMap },
+        deviceActiveSeconds: { ...remoteActiveMap },
+        deviceContextSwitches: { ...remoteSwitchesMap }
+      };
     }
   });
 
@@ -251,15 +292,30 @@ export async function runSyncCycle(interactive = false) {
       try {
         const remoteLogs = await downloadFileContent(token, file.id);
         if (Array.isArray(remoteLogs)) {
-          allRemoteLogs = allRemoteLogs.concat(remoteLogs);
+          // Extract remote device ID from filename
+          const fileDeviceId = file.name.replace('.json', '');
+          const mappedLogs = remoteLogs.map((log) => {
+            const mapped = { ...log };
+            if (!mapped.deviceSeconds || Object.keys(mapped.deviceSeconds).length === 0) {
+              mapped.deviceSeconds = { [fileDeviceId]: log.seconds || 0 };
+            }
+            if (!mapped.deviceActiveSeconds || Object.keys(mapped.deviceActiveSeconds).length === 0) {
+              mapped.deviceActiveSeconds = { [fileDeviceId]: log.activeSeconds || 0 };
+            }
+            if (!mapped.deviceContextSwitches || Object.keys(mapped.deviceContextSwitches).length === 0) {
+              mapped.deviceContextSwitches = { [fileDeviceId]: log.contextSwitches || 0 };
+            }
+            return mapped;
+          });
+          allRemoteLogs = allRemoteLogs.concat(mappedLogs);
         }
       } catch (err) {
         console.warn(`Failed to download remote file ${file.name}, skipping:`, err);
       }
     }
 
-    // Perform merge
-    const mergedLogs = mergeLogs(localLogsList, allRemoteLogs);
+    // Perform merge passing local deviceId
+    const mergedLogs = mergeLogs(localLogsList, allRemoteLogs, deviceId);
 
     // Save fully merged dataset to local IndexedDB
     for (const record of mergedLogs) {
