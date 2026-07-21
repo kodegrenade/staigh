@@ -861,6 +861,18 @@ function Options() {
     }
   }
 
+  async function handleToggleCustomCredentials(e) {
+    const checked = e.target.checked;
+    const updated = await updateSettings({ useCustomCredentials: checked });
+    setSettings(updated);
+  }
+
+  async function handleCustomClientIdChange(e) {
+    const val = e.target.value;
+    const updated = await updateSettings({ customClientId: val });
+    setSettings(updated);
+  }
+
   // --- UI Format Helpers ---
 
   function formatDuration(totalSecs) {
@@ -1632,9 +1644,37 @@ function Options() {
                     </div>
                   </div>
                 ) : (
-                  <button className="btn-backup-action" onClick={handleConnectSync} disabled={syncing}>
-                    <span>{syncing ? 'Connecting...' : 'Connect Google Drive'}</span>
-                  </button>
+                  <>
+                    <button className="btn-backup-action" onClick={handleConnectSync} disabled={syncing}>
+                      <span>{syncing ? 'Connecting...' : 'Connect Google Drive'}</span>
+                    </button>
+                    
+                    <div className="custom-sync-settings">
+                      <label className="custom-sync-checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={settings.useCustomCredentials || false}
+                          onChange={handleToggleCustomCredentials}
+                        />
+                        <span>Use Custom Credentials</span>
+                      </label>
+                      
+                      {settings.useCustomCredentials && (
+                        <div className="custom-sync-input-group">
+                          <input
+                            type="text"
+                            placeholder="OAuth Client ID"
+                            value={settings.customClientId || ''}
+                            onChange={handleCustomClientIdChange}
+                            className="custom-sync-input"
+                          />
+                          <p className="custom-sync-help">
+                            Create an OAuth credential of type <strong>Chrome App/Extension</strong> in Google Cloud Console. Enable Google Drive API, set scope to <code>drive.appdata</code>, and register this Extension ID: <code>{chrome.runtime.id}</code>.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
 
                 {backupStatus.card === 'sync' && backupStatus.message && (

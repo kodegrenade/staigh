@@ -96,8 +96,12 @@ Click the Staigh icon in your toolbar to view the quick popup. From here, you ca
 ### Exclude Specific Sites
 If you do not want to record time spent on local development environments or search engines, go to the "Blocklist" tab in the dashboard, click a tag from the **Suggestions** list, or enter the domain name manually, and click **Exclude Domain**. Staigh will ignore them completely.
 
-### Manage Data
-Under the "Data & Backup" tab, you can export your entire tracking history and settings to a JSON file. If you ever want to start fresh, you can use the factory reset option, which prompts you with a custom confirmation screen before permanently wiping your IndexedDB store.
+### Manage Data & Cloud Sync
+Under the "Data & Backup" tab, you can manage your database records and synchronize them across multiple devices:
+- **Local File Backup**: Export your entire tracking history and settings to a JSON file, or restore configurations by importing an existing backup. Restoring is safe and retains your active device's sync settings.
+- **Google Drive Cloud Sync**: Sync settings, limits, and historical logs across multiple desktops using a sandboxed `appDataFolder` on your personal Google Drive.
+- **Custom Sync Credentials**: Privacy-conscious users can opt out of using the developer's default credentials. You can enable **Use Custom Credentials** and configure your own Google Cloud Console OAuth Client ID to manage your own sync connections independently.
+- **Factory Reset**: Permanently delete all configuration, blocklists, limits, and historical records with a double-check confirmation prompt.
 
 ## Contributing
 

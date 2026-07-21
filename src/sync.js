@@ -2,9 +2,65 @@ import { getSettings, updateSettings, getAllLogs, saveLog } from './db.js';
 
 /**
  * Request an OAuth token from Chrome Identity.
+ * Supports both default settings and custom Client IDs via launchWebAuthFlow.
  * @param {boolean} interactive - Whether to prompt the user if unauthorized.
  */
-export function getAuthToken(interactive = false) {
+export async function getAuthToken(interactive = false) {
+  const settings = await getSettings();
+
+  if (settings.useCustomCredentials && settings.customClientId) {
+    // Return cached token if valid (expires in more than 60s)
+    if (settings.customToken && settings.customTokenExpires > Date.now() + 60000) {
+      return settings.customToken;
+    }
+
+    const redirectUri = chrome.identity.getRedirectURL();
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth` +
+      `?client_id=${settings.customClientId}` +
+      `&response_type=token` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      `&scope=${encodeURIComponent('https://www.googleapis.com/auth/drive.appdata')}`;
+
+    return new Promise((resolve, reject) => {
+      chrome.identity.launchWebAuthFlow(
+        { url: authUrl, interactive },
+        async (redirectUrl) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+            return;
+          }
+          if (!redirectUrl) {
+            reject(new Error('OAuth flow returned empty redirect URL'));
+            return;
+          }
+
+          try {
+            const url = new URL(redirectUrl);
+            const params = new URLSearchParams(url.hash.substring(1));
+            const token = params.get('access_token');
+            const expiresIn = parseInt(params.get('expires_in'), 10) || 3600;
+
+            if (!token) {
+              reject(new Error('Failed to parse access token from OAuth redirect'));
+              return;
+            }
+
+            const customTokenExpires = Date.now() + expiresIn * 1000;
+            await updateSettings({
+              customToken: token,
+              customTokenExpires
+            });
+
+            resolve(token);
+          } catch (err) {
+            reject(new Error(`Failed to parse auth response: ${err.message}`));
+          }
+        }
+      );
+    });
+  }
+
+  // Fallback: Default credentials managed by standard getAuthToken
   return new Promise((resolve, reject) => {
     if (typeof chrome === 'undefined' || !chrome.identity) {
       reject(new Error('Chrome Identity API is not available'));
@@ -28,13 +84,26 @@ export function getAuthToken(interactive = false) {
  * Remove/Revoke the cached OAuth token.
  */
 export async function logout() {
-  const token = await getAuthToken(false).catch(() => null);
-  if (token) {
-    await new Promise((resolve) => {
-      chrome.identity.removeCachedAuthToken({ token }, resolve);
+  const settings = await getSettings();
+
+  if (settings.useCustomCredentials) {
+    const cachedToken = settings.customToken;
+    await updateSettings({
+      customToken: '',
+      customTokenExpires: 0
     });
-    // Revoke token access from Google servers
-    await fetch(`https://oauth2.googleapis.com/revoke?token=${token}`, { method: 'POST' }).catch(() => {});
+    if (cachedToken) {
+      await fetch(`https://oauth2.googleapis.com/revoke?token=${cachedToken}`, { method: 'POST' }).catch(() => {});
+    }
+  } else {
+    const token = await getAuthToken(false).catch(() => null);
+    if (token) {
+      await new Promise((resolve) => {
+        chrome.identity.removeCachedAuthToken({ token }, resolve);
+      });
+      // Revoke token access from Google servers
+      await fetch(`https://oauth2.googleapis.com/revoke?token=${token}`, { method: 'POST' }).catch(() => {});
+    }
   }
 }
 

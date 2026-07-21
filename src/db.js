@@ -270,8 +270,18 @@ export async function importData(data) {
     throw new Error('Invalid backup data format');
   }
 
-  // Restore settings
-  await updateSettings(data.settings);
+  // Restore settings, but preserve existing local sync identity and custom credentials
+  const localSettings = await getSettings();
+  const settingsToRestore = { ...data.settings };
+  
+  settingsToRestore.deviceId = localSettings.deviceId || '';
+  settingsToRestore.lastSyncTime = localSettings.lastSyncTime || '';
+  settingsToRestore.customClientId = localSettings.customClientId || '';
+  settingsToRestore.useCustomCredentials = localSettings.useCustomCredentials || false;
+  settingsToRestore.customToken = localSettings.customToken || '';
+  settingsToRestore.customTokenExpires = localSettings.customTokenExpires || 0;
+
+  await updateSettings(settingsToRestore);
 
   // Restore database
   const db = await getDB();
