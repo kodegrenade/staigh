@@ -221,7 +221,7 @@ function getDomainCategory(domain, overrides = {}, classified = {}) {
 
 function Options() {
   const [activeTab, setActiveTab] = useState('analytics');
-  const [dateRange, setDateRange] = useState('7days'); // 'today', 'yesterday', '7days', '30days'
+  const [dateRange, setDateRange] = useState('7days'); // 'today', 'yesterday', '7days', '30days', '90days', 'alltime'
   const [logs, setLogs] = useState([]);
   const [settings, setSettings] = useState({
     blacklist: [],
@@ -326,6 +326,10 @@ function Options() {
       startDate = getLocalDateString(6);
     } else if (dateRange === '30days') {
       startDate = getLocalDateString(29);
+    } else if (dateRange === '90days') {
+      startDate = getLocalDateString(89);
+    } else if (dateRange === 'alltime') {
+      startDate = '1970-01-01';
     }
 
     try {
@@ -444,17 +448,29 @@ function Options() {
       offsets = Array.from({ length: 7 }, (_, i) => 6 - i);
     } else if (dateRange === '30days') {
       offsets = Array.from({ length: 30 }, (_, i) => 29 - i);
+    } else if (dateRange === '90days') {
+      offsets = Array.from({ length: 90 }, (_, i) => 89 - i);
     }
 
-    // Pre-populate range days to fill any gaps
-    offsets.forEach((offset) => {
-      const dateStr = getLocalDateString(offset);
-      const label = new Date(dateStr).toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
+    if (dateRange === 'alltime') {
+      const logDates = Array.from(new Set(logs.map((log) => log.date))).sort();
+      logDates.forEach((dateStr) => {
+        const label = new Date(dateStr).toLocaleDateString(undefined, {
+          month: 'short',
+          day: 'numeric',
+        });
+        daysMap[dateStr] = { date: dateStr, label, minutes: 0 };
       });
-      daysMap[dateStr] = { date: dateStr, label, minutes: 0 };
-    });
+    } else {
+      offsets.forEach((offset) => {
+        const dateStr = getLocalDateString(offset);
+        const label = new Date(dateStr).toLocaleDateString(undefined, {
+          month: 'short',
+          day: 'numeric',
+        });
+        daysMap[dateStr] = { date: dateStr, label, minutes: 0 };
+      });
+    }
 
     logs.forEach((log) => {
       if (!log.isFullUrl && (selectedChartDomain === 'all' || log.domain === selectedChartDomain)) {
@@ -924,6 +940,18 @@ function Options() {
                   onClick={() => setDateRange('30days')}
                 >
                   30 Days
+                </button>
+                <button
+                  className={dateRange === '90days' ? 'active' : ''}
+                  onClick={() => setDateRange('90days')}
+                >
+                  90 Days
+                </button>
+                <button
+                  className={dateRange === 'alltime' ? 'active' : ''}
+                  onClick={() => setDateRange('alltime')}
+                >
+                  All Time
                 </button>
               </div>
             </header>
