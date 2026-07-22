@@ -20,12 +20,6 @@
     "alarms",
     "identity"
   ],
-  "oauth2": {
-    "client_id": "602670590358-4ncemj88oif3nlc38cp4r3s5rd5ejjhg.apps.googleusercontent.com",
-    "scopes": [
-      "https://www.googleapis.com/auth/drive.appdata"
-    ]
-  },
   "background": {
     "service_worker": "background.js",
     "type": "module"

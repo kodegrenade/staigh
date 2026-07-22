@@ -174,7 +174,7 @@ function getDomainCategory(domain, overrides = {}, classified = {}) {
   if (overrides[cleanDomain]) {
     return overrides[cleanDomain];
   }
-  const overrideMatch = Object.keys(overrides).find(key => 
+  const overrideMatch = Object.keys(overrides).find(key =>
     cleanDomain === key || cleanDomain.endsWith('.' + key)
   );
   if (overrideMatch) {
@@ -182,7 +182,7 @@ function getDomainCategory(domain, overrides = {}, classified = {}) {
   }
 
   // Tier 1: Suffix Dictionary Lookup
-  const dictMatch = Object.keys(CATEGORY_MAP).find(key => 
+  const dictMatch = Object.keys(CATEGORY_MAP).find(key =>
     cleanDomain === key || cleanDomain.endsWith('.' + key)
   );
   if (dictMatch) {
@@ -193,7 +193,7 @@ function getDomainCategory(domain, overrides = {}, classified = {}) {
   if (classified[cleanDomain]) {
     return classified[cleanDomain];
   }
-  const classifiedMatch = Object.keys(classified).find(key => 
+  const classifiedMatch = Object.keys(classified).find(key =>
     cleanDomain === key || cleanDomain.endsWith('.' + key)
   );
   if (classifiedMatch) {
@@ -239,7 +239,7 @@ function Options() {
   const [newLimitMinutes, setNewLimitMinutes] = useState('');
   const [newFullUrlDomain, setNewFullUrlDomain] = useState('');
   const [settingsSearch, setSettingsSearch] = useState('');
-  
+
   // Analytics Table State
   const [analyticsSearch, setAnalyticsSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -249,7 +249,11 @@ function Options() {
   // Status/Alerts State
   const [backupStatus, setBackupStatus] = useState({ type: '', message: '', card: '' });
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showClearCloudConfirm, setShowClearCloudConfirm] = useState(false);
+  const [showSetupGuideModal, setShowSetupGuideModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, type: '', target: '' });
+  const [copySuccess, setCopySuccess] = useState(false);
+  const [copyRedirectSuccess, setCopyRedirectSuccess] = useState(false);
 
   function showBackupStatus(card, type, message) {
     setBackupStatus({ card, type, message });
@@ -273,7 +277,7 @@ function Options() {
         document.documentElement.setAttribute('data-theme', newSettings.theme || 'dark');
       }
     };
-    
+
     const handleFocusChange = () => {
       if (document.visibilityState === 'visible') {
         loadLogs();
@@ -708,7 +712,7 @@ function Options() {
     const mins = totalMinutes % 60;
     setNewLimitHours(hrs > 0 ? String(hrs) : '');
     setNewLimitMinutes(mins > 0 ? String(mins) : '');
-    
+
     // Smooth scroll the limit configuration form into view
     const formCard = document.querySelector('.form-card');
     if (formCard) {
@@ -722,7 +726,7 @@ function Options() {
     const hours = parseInt(newLimitHours, 10) || 0;
     const minutes = parseInt(newLimitMinutes, 10) || 0;
     const totalMinutes = (hours * 60) + minutes;
-    
+
     if (totalMinutes <= 0) return;
 
     const updatedLimits = { ...settings.limits, [domain]: totalMinutes };
@@ -861,10 +865,12 @@ function Options() {
     }
   }
 
-  async function handleClearCloudSync() {
-    if (!window.confirm('Are you sure you want to delete all Staigh sync backup files from your Google Drive? This cannot be undone.')) {
-      return;
-    }
+  function handleClearCloudSync() {
+    setShowClearCloudConfirm(true);
+  }
+
+  async function handleConfirmClearCloud() {
+    setShowClearCloudConfirm(false);
     setSyncing(true);
     try {
       const result = await clearCloudSyncData();
@@ -879,10 +885,21 @@ function Options() {
     }
   }
 
-  async function handleToggleCustomCredentials(e) {
-    const checked = e.target.checked;
-    const updated = await updateSettings({ useCustomCredentials: checked });
-    setSettings(updated);
+  function handleCopyExtensionId() {
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
+      navigator.clipboard.writeText(chrome.runtime.id);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2500);
+    }
+  }
+
+  function handleCopyRedirectUri() {
+    if (typeof chrome !== 'undefined' && chrome.identity && chrome.identity.getRedirectURL) {
+      const redirectUrl = chrome.identity.getRedirectURL('provider_cb');
+      navigator.clipboard.writeText(redirectUrl);
+      setCopyRedirectSuccess(true);
+      setTimeout(() => setCopyRedirectSuccess(false), 2500);
+    }
   }
 
   async function handleCustomClientIdChange(e) {
@@ -1162,7 +1179,7 @@ function Options() {
                     </div>
                   </div>
                   <p className="persona-description">{browsingPersona.description}</p>
-                  
+
                   <div className="persona-stats-grid">
                     <div className="p-stat">
                       <span className="p-stat-label">Focus Score</span>
@@ -1194,8 +1211,8 @@ function Options() {
                       <div key={cat.name} className="category-item">
                         <div className="category-meta">
                           <div className="cat-name-dot">
-                            <span 
-                              className="cat-dot" 
+                            <span
+                              className="cat-dot"
                               style={{ backgroundColor: CATEGORY_COLORS[cat.name] || '#94a3b8' }}
                             ></span>
                             <span className="cat-name-text">{cat.name}</span>
@@ -1203,9 +1220,9 @@ function Options() {
                           <span className="category-percentage-text">{cat.percentage}%</span>
                         </div>
                         <div className="category-progress-bg">
-                          <div 
-                            className="category-progress-fill" 
-                            style={{ 
+                          <div
+                            className="category-progress-fill"
+                            style={{
                               width: `${cat.percentage}%`,
                               backgroundColor: CATEGORY_COLORS[cat.name] || '#94a3b8'
                             }}
@@ -1547,7 +1564,7 @@ function Options() {
             <div className="info-banner">
               <AlertTriangle size={16} className="info-icon" />
               <p>
-                By default, Staigh aggregates your time spent under the root domain (e.g. <code>github.com</code>). 
+                By default, Staigh aggregates your time spent under the root domain (e.g. <code>github.com</code>).
                 If you add a domain below, we will track detailed full paths (e.g. <code>github.com/user/project</code>).
               </p>
             </div>
@@ -1645,7 +1662,7 @@ function Options() {
                 </div>
                 <h3>Google Drive Cloud Sync</h3>
                 <p>Sync settings, limits, and browsing history across multiple desktops using your personal Google Drive.</p>
-                
+
                 <div className="backup-card-actions">
                   {settings.lastSyncTime ? (
                     <div className="sync-status-info">
@@ -1670,37 +1687,36 @@ function Options() {
                       </div>
                     </div>
                   ) : (
-                    <>
+                    <div className="diy-sync-form">
+                      <div className="custom-sync-input-group">
+                        <label className="input-label-sm">Google OAuth Client ID</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 123456-abcde.apps.googleusercontent.com"
+                          value={settings.customClientId || ''}
+                          onChange={handleCustomClientIdChange}
+                          className="custom-sync-input"
+                        />
+                      </div>
+
+                      <div className="redirect-uri-hint">
+                        <span>Authorized Redirect URI:</span>
+                        <div className="ext-id-copy-row">
+                          <code>{chrome?.identity?.getRedirectURL ? chrome.identity.getRedirectURL('provider_cb') : 'https://...chromiumapp.org/provider_cb'}</code>
+                          <button type="button" className="btn-copy-id" onClick={handleCopyRedirectUri}>
+                            {copyRedirectSuccess ? 'Copied!' : 'Copy'}
+                          </button>
+                        </div>
+                      </div>
+
                       <button className="btn-backup-action" onClick={handleConnectSync} disabled={syncing}>
                         <span>{syncing ? 'Connecting...' : 'Connect Google Drive'}</span>
                       </button>
-                      
-                      <div className="custom-sync-settings">
-                        <label className="custom-sync-checkbox-label">
-                          <input
-                            type="checkbox"
-                            checked={settings.useCustomCredentials || false}
-                            onChange={handleToggleCustomCredentials}
-                          />
-                          <span>Use Custom Credentials</span>
-                        </label>
-                        
-                        {settings.useCustomCredentials && (
-                          <div className="custom-sync-input-group">
-                            <input
-                              type="text"
-                              placeholder="OAuth Client ID"
-                              value={settings.customClientId || ''}
-                              onChange={handleCustomClientIdChange}
-                              className="custom-sync-input"
-                            />
-                            <p className="custom-sync-help">
-                              Create an OAuth credential of type <strong>Chrome App/Extension</strong> in Google Cloud Console. Enable Google Drive API, set scope to <code>drive.appdata</code>, and register this Extension ID: <code>{chrome.runtime.id}</code>.
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </>
+
+                      <button type="button" className="btn-link-help" onClick={() => setShowSetupGuideModal(true)}>
+                        <span>Need help? View Setup Guide</span>
+                      </button>
+                    </div>
                   )}
 
                   {backupStatus.card === 'sync' && backupStatus.message && (
@@ -1769,6 +1785,113 @@ function Options() {
               </button>
               <button className="btn-modal-confirm" onClick={confirmDelete}>
                 Confirm Removal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Clear Cloud Data Confirmation Modal */}
+      {showClearCloudConfirm && (
+        <div className="modal-overlay" onClick={() => setShowClearCloudConfirm(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-icon-wrapper">
+              <AlertTriangle size={24} className="modal-warning-icon" />
+            </div>
+            <h2>Clear Google Drive Sync Data?</h2>
+            <p>This will permanently delete all Staigh backup files (time logs, limits, blocklist, tracking settings) from your Google Drive appDataFolder. Your local browsing history on this computer will remain intact.</p>
+            <div className="modal-actions">
+              <button className="btn-modal-cancel" onClick={() => setShowClearCloudConfirm(false)}>
+                Cancel
+              </button>
+              <button className="btn-modal-confirm" onClick={handleConfirmClearCloud}>
+                Clear Cloud Data
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Setup Guide Modal Overlay */}
+      {showSetupGuideModal && (
+        <div className="modal-overlay" onClick={() => setShowSetupGuideModal(false)}>
+          <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header-row">
+              <div className="modal-icon-wrapper green compact">
+                <Cloud size={22} />
+              </div>
+              <div className="modal-header-text">
+                <h2>Google Cloud Sync Setup</h2>
+                <p className="modal-subtitle-text">Follow these steps to generate your personal Google OAuth Client ID:</p>
+              </div>
+            </div>
+
+            <div className="modal-guide-steps">
+              <div className="guide-step-card">
+                <div className="step-badge">1</div>
+                <div className="step-body">
+                  <strong>Create Google Cloud Project</strong>
+                  <p>Go to <a href="https://console.cloud.google.com/" target="_blank" rel="noreferrer">console.cloud.google.com</a>, create a project, and enable the <b>Google Drive API</b> under <i>APIs &amp; Services &gt; Library</i>.</p>
+                </div>
+              </div>
+
+              <div className="guide-step-card">
+                <div className="step-badge">2</div>
+                <div className="step-body">
+                  <strong>Configure OAuth Consent Screen</strong>
+                  <p>Set User Type to <i>External</i>, enter app name <i>Staigh</i>, add scope <code>drive.appdata</code>, and add your Google email address under <i>Test Users</i>.</p>
+                </div>
+              </div>
+
+              <div className="guide-step-card">
+                <div className="step-badge">3</div>
+                <div className="step-body">
+                  <strong>Create OAuth Client ID Credentials</strong>
+                  <p>Go to <i>Credentials &gt; Create Credentials &gt; OAuth Client ID</i>. Select Application type <b>Web application</b> (Recommended) or <b>Chrome Extension</b>:</p>
+
+                  <div className="copy-helpers-grid">
+                    <div className="copy-helper-box">
+                      <span className="helper-label">Option A: Web Application (Recommended)</span>
+                      <p className="helper-desc">In Google Cloud Console, click <b>ADD URI</b> under <i>Authorized redirect URIs</i> and paste:</p>
+                      <div className="ext-id-copy-row">
+                        <code>{chrome?.identity?.getRedirectURL ? chrome.identity.getRedirectURL('provider_cb') : 'https://...chromiumapp.org/provider_cb'}</code>
+                        <button type="button" className="btn-copy-id" onClick={handleCopyRedirectUri}>
+                          {copyRedirectSuccess ? 'Copied!' : 'Copy URI'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="copy-helper-box">
+                      <span className="helper-label">Option B: Chrome Extension</span>
+                      <p className="helper-desc">Set under <b>Application ID</b> in Google Cloud Console:</p>
+                      <div className="ext-id-copy-row">
+                        <code>{chrome?.runtime?.id || 'Extension ID'}</code>
+                        <button type="button" className="btn-copy-id" onClick={handleCopyExtensionId}>
+                          {copySuccess ? 'Copied!' : 'Copy ID'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="modal-tip-banner">
+                    <AlertTriangle size={14} className="tip-icon" />
+                    <span><strong>Fixing Error 400 (redirect_uri_mismatch):</strong> If Google says &quot;invalid request&quot;, make sure you clicked <b>SAVE</b> at the bottom of Google Cloud Console after adding the redirect URIs above.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="guide-step-card">
+                <div className="step-badge">4</div>
+                <div className="step-body">
+                  <strong>Paste Client ID &amp; Connect</strong>
+                  <p>Copy your generated Client ID from Google Cloud Console, paste it into Staigh, and click <b>Connect Google Drive</b>.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button className="btn-modal-confirm" onClick={() => setShowSetupGuideModal(false)}>
+                Done &amp; Close
               </button>
             </div>
           </div>
