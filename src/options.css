@@ -853,12 +853,30 @@ input[type="number"] {
   color: var(--text-main);
 }
 
-.sync-actions-group {
+.backup-card-actions {
+  margin-top: auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sync-actions-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 14px;
+}
+
+.sync-secondary-actions {
   display: flex;
   gap: 8px;
-  margin-top: 14px;
   width: 100%;
-  box-sizing: border-box;
+}
+
+.sync-secondary-actions .btn-backup-action {
+  flex: 1;
 }
 
 .btn-backup-action.secondary {

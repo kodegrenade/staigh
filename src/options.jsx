@@ -1608,33 +1608,35 @@ function Options() {
                 </div>
                 <h3>Local File Backup</h3>
                 <p>Export your settings and time logs to a local JSON backup file, or restore data from an existing backup.</p>
-                <div className="local-backup-actions">
-                  <button className="btn-backup-action" onClick={handleExport}>
-                    <span>Export Backup</span>
-                  </button>
-                  <div className="import-wrapper">
-                    <label htmlFor="import-file" className="btn-backup-action import-lbl">
-                      <span>Import Backup</span>
-                    </label>
-                    <input
-                      id="import-file"
-                      type="file"
-                      accept=".json"
-                      onChange={handleImport}
-                      style={{ display: 'none' }}
-                    />
+                <div className="backup-card-actions">
+                  <div className="local-backup-actions">
+                    <button className="btn-backup-action" onClick={handleExport}>
+                      <span>Export Backup</span>
+                    </button>
+                    <div className="import-wrapper">
+                      <label htmlFor="import-file" className="btn-backup-action import-lbl">
+                        <span>Import Backup</span>
+                      </label>
+                      <input
+                        id="import-file"
+                        type="file"
+                        accept=".json"
+                        onChange={handleImport}
+                        style={{ display: 'none' }}
+                      />
+                    </div>
                   </div>
+                  {backupStatus.card === 'export' && backupStatus.message && (
+                    <div className={`import-alert ${backupStatus.type}`}>
+                      {backupStatus.message}
+                    </div>
+                  )}
+                  {backupStatus.card === 'import' && backupStatus.message && (
+                    <div className={`import-alert ${backupStatus.type}`}>
+                      {backupStatus.message}
+                    </div>
+                  )}
                 </div>
-                {backupStatus.card === 'export' && backupStatus.message && (
-                  <div className={`import-alert ${backupStatus.type}`} style={{ marginTop: '12px' }}>
-                    {backupStatus.message}
-                  </div>
-                )}
-                {backupStatus.card === 'import' && backupStatus.message && (
-                  <div className={`import-alert ${backupStatus.type}`} style={{ marginTop: '12px' }}>
-                    {backupStatus.message}
-                  </div>
-                )}
               </div>
 
               <div className="backup-card">
@@ -1644,65 +1646,69 @@ function Options() {
                 <h3>Google Drive Cloud Sync</h3>
                 <p>Sync settings, limits, and browsing history across multiple desktops using your personal Google Drive.</p>
                 
-                {settings.lastSyncTime ? (
-                  <div className="sync-status-info">
-                    <p className="sync-text-status">
-                      Authenticated: <strong>{settings.deviceId || 'Primary Device'}</strong>
-                    </p>
-                    <p className="sync-text-time">
-                      Last Synced: <strong>{new Date(settings.lastSyncTime).toLocaleString()}</strong>
-                    </p>
-                    <div className="sync-actions-group">
-                      <button className="btn-backup-action" onClick={handleSyncNow} disabled={syncing}>
-                        <span>{syncing ? 'Syncing...' : 'Sync Now'}</span>
-                      </button>
-                      <button className="btn-backup-action secondary" onClick={handleClearCloudSync} disabled={syncing}>
-                        <span>Clear Cloud Data</span>
-                      </button>
-                      <button className="btn-backup-action danger" onClick={handleDisconnectSync} disabled={syncing}>
-                        <span>Disconnect</span>
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <button className="btn-backup-action" onClick={handleConnectSync} disabled={syncing}>
-                      <span>{syncing ? 'Connecting...' : 'Connect Google Drive'}</span>
-                    </button>
-                    
-                    <div className="custom-sync-settings">
-                      <label className="custom-sync-checkbox-label">
-                        <input
-                          type="checkbox"
-                          checked={settings.useCustomCredentials || false}
-                          onChange={handleToggleCustomCredentials}
-                        />
-                        <span>Use Custom Credentials</span>
-                      </label>
-                      
-                      {settings.useCustomCredentials && (
-                        <div className="custom-sync-input-group">
-                          <input
-                            type="text"
-                            placeholder="OAuth Client ID"
-                            value={settings.customClientId || ''}
-                            onChange={handleCustomClientIdChange}
-                            className="custom-sync-input"
-                          />
-                          <p className="custom-sync-help">
-                            Create an OAuth credential of type <strong>Chrome App/Extension</strong> in Google Cloud Console. Enable Google Drive API, set scope to <code>drive.appdata</code>, and register this Extension ID: <code>{chrome.runtime.id}</code>.
-                          </p>
+                <div className="backup-card-actions">
+                  {settings.lastSyncTime ? (
+                    <div className="sync-status-info">
+                      <p className="sync-text-status">
+                        Authenticated Device ID: <strong>{settings.deviceId || 'Primary Device'}</strong>
+                      </p>
+                      <p className="sync-text-time">
+                        Last Synced: <strong>{new Date(settings.lastSyncTime).toLocaleString()}</strong>
+                      </p>
+                      <div className="sync-actions-stack">
+                        <button className="btn-backup-action" onClick={handleSyncNow} disabled={syncing}>
+                          <span>{syncing ? 'Syncing...' : 'Sync Now'}</span>
+                        </button>
+                        <div className="sync-secondary-actions">
+                          <button className="btn-backup-action secondary" onClick={handleClearCloudSync} disabled={syncing}>
+                            <span>Clear Cloud Data</span>
+                          </button>
+                          <button className="btn-backup-action danger" onClick={handleDisconnectSync} disabled={syncing}>
+                            <span>Disconnect</span>
+                          </button>
                         </div>
-                      )}
+                      </div>
                     </div>
-                  </>
-                )}
+                  ) : (
+                    <>
+                      <button className="btn-backup-action" onClick={handleConnectSync} disabled={syncing}>
+                        <span>{syncing ? 'Connecting...' : 'Connect Google Drive'}</span>
+                      </button>
+                      
+                      <div className="custom-sync-settings">
+                        <label className="custom-sync-checkbox-label">
+                          <input
+                            type="checkbox"
+                            checked={settings.useCustomCredentials || false}
+                            onChange={handleToggleCustomCredentials}
+                          />
+                          <span>Use Custom Credentials</span>
+                        </label>
+                        
+                        {settings.useCustomCredentials && (
+                          <div className="custom-sync-input-group">
+                            <input
+                              type="text"
+                              placeholder="OAuth Client ID"
+                              value={settings.customClientId || ''}
+                              onChange={handleCustomClientIdChange}
+                              className="custom-sync-input"
+                            />
+                            <p className="custom-sync-help">
+                              Create an OAuth credential of type <strong>Chrome App/Extension</strong> in Google Cloud Console. Enable Google Drive API, set scope to <code>drive.appdata</code>, and register this Extension ID: <code>{chrome.runtime.id}</code>.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
 
-                {backupStatus.card === 'sync' && backupStatus.message && (
-                  <div className={`import-alert ${backupStatus.type}`} style={{ marginTop: '12px' }}>
-                    {backupStatus.message}
-                  </div>
-                )}
+                  {backupStatus.card === 'sync' && backupStatus.message && (
+                    <div className={`import-alert ${backupStatus.type}`}>
+                      {backupStatus.message}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="backup-card danger">
@@ -1711,14 +1717,16 @@ function Options() {
                 </div>
                 <h3>Factory Reset Database</h3>
                 <p>Permanently delete all configuration, blocklists, limits, and historical records. This cannot be undone.</p>
-                <button className="btn-backup-action danger" onClick={handleClearData}>
-                  <span>Clear All History</span>
-                </button>
-                {backupStatus.card === 'reset' && backupStatus.message && (
-                  <div className={`import-alert ${backupStatus.type}`} style={{ marginTop: '12px' }}>
-                    {backupStatus.message}
-                  </div>
-                )}
+                <div className="backup-card-actions">
+                  <button className="btn-backup-action danger" onClick={handleClearData}>
+                    <span>Clear All History</span>
+                  </button>
+                  {backupStatus.card === 'reset' && backupStatus.message && (
+                    <div className={`import-alert ${backupStatus.type}`}>
+                      {backupStatus.message}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
