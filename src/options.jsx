@@ -35,7 +35,7 @@ import {
   importData,
   clearAllLogs,
 } from './db.js';
-import { runSyncCycle, logout } from './sync.js';
+import { runSyncCycle, logout, clearCloudSyncData } from './sync.js';
 import './options.css';
 
 const CHART_COLORS = ['#a78bfa', '#818cf8', '#60a5fa', '#34d399', '#fbbf24', '#f472b6', '#2dd4bf'];
@@ -851,11 +851,29 @@ function Options() {
     setSyncing(true);
     try {
       await logout();
-      const updated = await updateSettings({ deviceId: '', lastSyncTime: '' });
+      const updated = await updateSettings({ lastSyncTime: '' });
       setSettings(updated);
       showBackupStatus('sync', 'success', 'Disconnected from Google Drive sync.');
     } catch (err) {
       showBackupStatus('sync', 'error', `Disconnect failed: ${err.message}`);
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function handleClearCloudSync() {
+    if (!window.confirm('Are you sure you want to delete all Staigh sync backup files from your Google Drive? This cannot be undone.')) {
+      return;
+    }
+    setSyncing(true);
+    try {
+      const result = await clearCloudSyncData();
+      if (result.success) {
+        setSettings(result.settings);
+        showBackupStatus('sync', 'success', 'All Google Drive sync data cleared successfully!');
+      }
+    } catch (err) {
+      showBackupStatus('sync', 'error', `Clear cloud data failed: ${err.message}`);
     } finally {
       setSyncing(false);
     }
@@ -1638,7 +1656,10 @@ function Options() {
                       <button className="btn-backup-action" onClick={handleSyncNow} disabled={syncing}>
                         <span>{syncing ? 'Syncing...' : 'Sync Now'}</span>
                       </button>
-                      <button className="btn-backup-action danger" onClick={handleDisconnectSync}>
+                      <button className="btn-backup-action secondary" onClick={handleClearCloudSync} disabled={syncing}>
+                        <span>Clear Cloud Data</span>
+                      </button>
+                      <button className="btn-backup-action danger" onClick={handleDisconnectSync} disabled={syncing}>
                         <span>Disconnect</span>
                       </button>
                     </div>

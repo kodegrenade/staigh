@@ -209,8 +209,24 @@ async function updateDriveFile(token, fileId, content) {
   if (!response.ok) {
     throw new Error(`Failed to update file on Drive: ${response.statusText}`);
   }
-  return await response.json();
 }
+
+/**
+ * Delete a file from appDataFolder.
+ */
+async function deleteDriveFile(token, fileId) {
+  const response = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}`,
+    {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    }
+  );
+  if (!response.ok && response.status !== 404) {
+    throw new Error(`Failed to delete file from Drive: ${response.statusText}`);
+  }
+}
+
 
 /**
  * Merge two settings configurations together.
@@ -417,3 +433,22 @@ export async function runSyncCycle(interactive = false) {
     throw error;
   }
 }
+
+/**
+ * Deletes all Staigh sync backup files from Google Drive appDataFolder.
+ */
+export async function clearCloudSyncData() {
+  try {
+    const token = await getAuthToken(false);
+    const driveFiles = await listAppDataFiles(token);
+    for (const file of driveFiles) {
+      await deleteDriveFile(token, file.id);
+    }
+    const updatedSettings = await updateSettings({ lastSyncTime: '' });
+    return { success: true, settings: updatedSettings };
+  } catch (error) {
+    console.error('Failed to clear cloud sync data:', error);
+    throw error;
+  }
+}
+
