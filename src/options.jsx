@@ -252,7 +252,6 @@ function Options() {
   const [showClearCloudConfirm, setShowClearCloudConfirm] = useState(false);
   const [showSetupGuideModal, setShowSetupGuideModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, type: '', target: '' });
-  const [copySuccess, setCopySuccess] = useState(false);
   const [copyRedirectSuccess, setCopyRedirectSuccess] = useState(false);
 
   function showBackupStatus(card, type, message) {
@@ -882,14 +881,6 @@ function Options() {
       showBackupStatus('sync', 'error', `Clear cloud data failed: ${err.message}`);
     } finally {
       setSyncing(false);
-    }
-  }
-
-  function handleCopyExtensionId() {
-    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
-      navigator.clipboard.writeText(chrome.runtime.id);
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2500);
     }
   }
 
@@ -1847,11 +1838,11 @@ function Options() {
                 <div className="step-badge">3</div>
                 <div className="step-body">
                   <strong>Create OAuth Client ID Credentials</strong>
-                  <p>Go to <i>Credentials &gt; Create Credentials &gt; OAuth Client ID</i>. Select Application type <b>Web application</b> (Recommended) or <b>Chrome Extension</b>:</p>
-
+                  <p>Go to <i>Credentials &gt; Create Credentials &gt; OAuth Client ID</i>. Select Application type <b>Web application</b>:</p>
+                  
                   <div className="copy-helpers-grid">
                     <div className="copy-helper-box">
-                      <span className="helper-label">Option A: Web Application (Recommended)</span>
+                      <span className="helper-label">Authorized Redirect URI</span>
                       <p className="helper-desc">In Google Cloud Console, click <b>ADD URI</b> under <i>Authorized redirect URIs</i> and paste:</p>
                       <div className="ext-id-copy-row">
                         <code>{chrome?.identity?.getRedirectURL ? chrome.identity.getRedirectURL('provider_cb') : 'https://...chromiumapp.org/provider_cb'}</code>
@@ -1860,22 +1851,11 @@ function Options() {
                         </button>
                       </div>
                     </div>
-
-                    <div className="copy-helper-box">
-                      <span className="helper-label">Option B: Chrome Extension</span>
-                      <p className="helper-desc">Set under <b>Application ID</b> in Google Cloud Console:</p>
-                      <div className="ext-id-copy-row">
-                        <code>{chrome?.runtime?.id || 'Extension ID'}</code>
-                        <button type="button" className="btn-copy-id" onClick={handleCopyExtensionId}>
-                          {copySuccess ? 'Copied!' : 'Copy ID'}
-                        </button>
-                      </div>
-                    </div>
                   </div>
 
                   <div className="modal-tip-banner">
                     <AlertTriangle size={14} className="tip-icon" />
-                    <span><strong>Fixing Error 400 (redirect_uri_mismatch):</strong> If Google says &quot;invalid request&quot;, make sure you clicked <b>SAVE</b> at the bottom of Google Cloud Console after adding the redirect URIs above.</span>
+                    <span><strong>Note:</strong> Make sure you click <b>SAVE</b> at the bottom of Google Cloud Console after adding the Authorized Redirect URI.</span>
                   </div>
                 </div>
               </div>

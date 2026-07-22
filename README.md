@@ -98,10 +98,18 @@ If you do not want to record time spent on local development environments or sea
 
 ### Manage Data & Cloud Sync
 Under the "Data & Backup" tab, you can manage your database records and synchronize them across multiple devices:
-- **Local File Backup**: Export your entire tracking history and settings to a JSON file, or restore configurations by importing an existing backup. Restoring is safe and retains your active device's sync settings.
-- **Google Drive Cloud Sync**: Sync settings, limits, and historical logs across multiple desktops using a sandboxed `appDataFolder` on your personal Google Drive.
-- **Custom Sync Credentials**: Privacy-conscious users can opt out of using the developer's default credentials. You can enable **Use Custom Credentials** and configure your own Google Cloud Console OAuth Client ID to manage your own sync connections independently.
-- **Factory Reset**: Permanently delete all configuration, blocklists, limits, and historical records with a double-check confirmation prompt.
+- **Local File Backup**: Export your entire tracking history and settings to a JSON file, or restore configurations by importing an existing backup. Restoring is safe and retains your active device's identity and sync settings.
+- **Google Drive Cloud Sync**: Sync settings, daily limits, blocklists, tracking granularity, and historical logs across all your computers using a sandboxed `appDataFolder` on your personal Google Drive.
+- **Factory Reset**: Permanently delete all configuration, blocklists, limits, and historical records with a confirmation modal prompt.
+
+#### Privacy-First Google Cloud Sync Setup
+To preserve user privacy and complete data sovereignty, Staigh operates with zero central servers or developer credentials. Users set up their own personal Google OAuth Client ID in under 2 minutes:
+1. Open [Google Cloud Console](https://console.cloud.google.com/), create a project, and enable the **Google Drive API**.
+2. Configure your OAuth consent screen (*User Type: External*, add scope `drive.appdata`, and add your Google email address as a *Test User*).
+3. Create Credentials -> OAuth Client ID -> Select Application type **Web application**.
+4. Click **ADD URI** under *Authorized redirect URIs* and paste your extension's Redirect URI (copied directly from the Staigh dashboard):
+   `https://<extension-id>.chromiumapp.org/provider_cb`
+5. Click **SAVE** at the bottom of the page, paste your generated Client ID into Staigh, and click **Connect Google Drive**.
 
 ## Contributing
 
