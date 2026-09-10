@@ -2,9 +2,103 @@
 
 const domain = window.location.hostname.replace(/^www\./, '').toLowerCase();
 
+// Lifecycle tracking to prevent unhandled 'Extension context invalidated' errors
+let metricsIntervalId = null;
+let interactionIntervalId = null;
+let widgetIntervalId = null;
+let isContextCleanedUp = false;
+
+function isContextValid() {
+  return !isContextCleanedUp && typeof chrome !== 'undefined' && Boolean(chrome.runtime && chrome.runtime.id);
+}
+
+function cleanupOnInvalidation() {
+  if (isContextCleanedUp) return;
+  isContextCleanedUp = true;
+
+  if (metricsIntervalId) {
+    clearInterval(metricsIntervalId);
+    metricsIntervalId = null;
+  }
+  if (interactionIntervalId) {
+    clearInterval(interactionIntervalId);
+    interactionIntervalId = null;
+  }
+  if (widgetIntervalId) {
+    clearInterval(widgetIntervalId);
+    widgetIntervalId = null;
+  }
+}
+
+function safeSendMessage(message, callback) {
+  if (!isContextValid()) {
+    cleanupOnInvalidation();
+    return;
+  }
+  try {
+    chrome.runtime.sendMessage(message, (response) => {
+      if (chrome.runtime.lastError) {
+        if (chrome.runtime.lastError.message?.includes('context invalidated')) {
+          cleanupOnInvalidation();
+        }
+        return;
+      }
+      if (callback) callback(response);
+    });
+  } catch (err) {
+    if (err && err.message && err.message.includes('context invalidated')) {
+      cleanupOnInvalidation();
+    }
+  }
+}
+
+function safeStorageGet(keys, callback) {
+  if (!isContextValid()) {
+    cleanupOnInvalidation();
+    return;
+  }
+  try {
+    chrome.storage.local.get(keys, (result) => {
+      if (chrome.runtime.lastError) {
+        if (chrome.runtime.lastError.message?.includes('context invalidated')) {
+          cleanupOnInvalidation();
+        }
+        return;
+      }
+      if (callback) callback(result || {});
+    });
+  } catch (err) {
+    if (err && err.message && err.message.includes('context invalidated')) {
+      cleanupOnInvalidation();
+    }
+  }
+}
+
+function safeStorageSet(data, callback) {
+  if (!isContextValid()) {
+    cleanupOnInvalidation();
+    return;
+  }
+  try {
+    chrome.storage.local.set(data, () => {
+      if (chrome.runtime.lastError) {
+        if (chrome.runtime.lastError.message?.includes('context invalidated')) {
+          cleanupOnInvalidation();
+        }
+        return;
+      }
+      if (callback) callback();
+    });
+  } catch (err) {
+    if (err && err.message && err.message.includes('context invalidated')) {
+      cleanupOnInvalidation();
+    }
+  }
+}
+
 // Query background script on startup to check if a daily limit is configured for this site
-if (typeof chrome !== 'undefined' && chrome.runtime) {
-  chrome.runtime.sendMessage({ action: 'checkLimit', domain }, (response) => {
+if (isContextValid()) {
+  safeSendMessage({ action: 'checkLimit', domain }, (response) => {
     if (response && response.hasLimit) {
       initWidget(response);
     }
@@ -15,7 +109,7 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
   const descMeta = document.querySelector('meta[name="description"]');
   const description = descMeta ? descMeta.getAttribute('content') : '';
 
-  chrome.runtime.sendMessage({
+  safeSendMessage({
     action: 'reportMetadata',
     domain,
     title,
@@ -28,7 +122,6 @@ function initWidget(initialConfig) {
   snoozeCount = Number(snoozeCount) || 0;
   limitMinutes = Number(limitMinutes) || 0;
   secondsToday = Number(secondsToday) || 0;
-  let intervalId = null;
 
   // 1. Create root element in host DOM
   const rootDiv = document.createElement('div');
@@ -41,7 +134,7 @@ function initWidget(initialConfig) {
   let left = window.innerWidth - 180;
 
   // Retrieve last saved coordinates for this domain
-  chrome.storage.local.get(['widgetPos'], (result) => {
+  safeStorageGet(['widgetPos'], (result) => {
     if (result.widgetPos && result.widgetPos[domain]) {
       const savedPos = result.widgetPos[domain];
       // Bound check saved coordinates in case screen resized
@@ -109,7 +202,7 @@ function initWidget(initialConfig) {
   snoozeBtn.innerText = 'Snooze';
   snoozeBtn.title = 'Snooze +10m (Max 3/day)';
   snoozeBtn.onclick = () => {
-    chrome.runtime.sendMessage({ action: 'snoozeDomain', domain }, (res) => {
+    safeSendMessage({ action: 'snoozeDomain', domain }, (res) => {
       if (res && res.success) {
         snoozeCount = Number(res.snoozeCount) || 0;
         limitMinutes = Number(res.limitMinutes) || 0;
@@ -125,7 +218,8 @@ function initWidget(initialConfig) {
   closeBtn.title = 'Dismiss Countdown';
   closeBtn.onclick = () => {
     rootDiv.style.display = 'none';
-    if (intervalId) clearInterval(intervalId);
+    if (widgetIntervalId) clearInterval(widgetIntervalId);
+    widgetIntervalId = null;
   };
 
   // Collapse / Expand Button
@@ -140,7 +234,7 @@ function initWidget(initialConfig) {
   let isCollapsed = false;
 
   // Retrieve collapse preference
-  chrome.storage.local.get(['widgetCollapse'], (result) => {
+  safeStorageGet(['widgetCollapse'], (result) => {
     if (result.widgetCollapse && result.widgetCollapse[domain]) {
       isCollapsed = true;
     }
@@ -149,14 +243,14 @@ function initWidget(initialConfig) {
 
   function toggleCollapse() {
     isCollapsed = !isCollapsed;
-    chrome.storage.local.get(['widgetCollapse'], (result) => {
+    safeStorageGet(['widgetCollapse'], (result) => {
       const widgetCollapse = result.widgetCollapse || {};
       if (isCollapsed) {
         widgetCollapse[domain] = true;
       } else {
         delete widgetCollapse[domain];
       }
-      chrome.storage.local.set({ widgetCollapse });
+      safeStorageSet({ widgetCollapse });
     });
     updateLayout();
   }
@@ -265,10 +359,10 @@ function initWidget(initialConfig) {
 
       // Save position to storage
       const rect = rootDiv.getBoundingClientRect();
-      chrome.storage.local.get(['widgetPos'], (result) => {
+      safeStorageGet(['widgetPos'], (result) => {
         const widgetPos = result.widgetPos || {};
         widgetPos[domain] = { top: rect.top, left: rect.left };
-        chrome.storage.local.set({ widgetPos });
+        safeStorageSet({ widgetPos });
       });
     }
   });
@@ -339,7 +433,11 @@ function initWidget(initialConfig) {
   // Initial layout draw (triggered inside updateLayout after preference load)
 
   // Run local 1-second ticker for smooth ticking
-  intervalId = setInterval(() => {
+  widgetIntervalId = setInterval(() => {
+    if (!isContextValid()) {
+      cleanupOnInvalidation();
+      return;
+    }
     if (!isPaused) {
       secondsToday += 1;
       updateWidgetUI();
@@ -348,6 +446,10 @@ function initWidget(initialConfig) {
 
   // 5. Message Listeners for background sync and setting changes
   chrome.runtime.onMessage.addListener((message) => {
+    if (!isContextValid()) {
+      cleanupOnInvalidation();
+      return;
+    }
     if (message.action === 'syncTime') {
       // Sync local ticker with official background database state
       secondsToday = message.secondsToday;
@@ -361,7 +463,8 @@ function initWidget(initialConfig) {
       if (nextLimit === undefined) {
         // Limit was removed for this domain -> destroy widget
         rootDiv.style.display = 'none';
-        if (intervalId) clearInterval(intervalId);
+        if (widgetIntervalId) clearInterval(widgetIntervalId);
+        widgetIntervalId = null;
       } else {
         // Limits or config properties updated
         snoozeCount = Number(snoozeCount) || 0;
@@ -393,7 +496,11 @@ function registerInteractionListeners() {
   window.addEventListener('mousedown', handleInteraction, { passive: true });
 
   // 1-second timer to check if user was active in this second
-  setInterval(() => {
+  interactionIntervalId = setInterval(() => {
+    if (!isContextValid()) {
+      cleanupOnInvalidation();
+      return;
+    }
     if (Date.now() - lastInteractionTime < 1000 && lastInteractionTime > 0) {
       activeSeconds++;
     }
@@ -439,9 +546,13 @@ function registerScrollListener() {
 
 // Periodically sync metrics back to background script
 function startMetricsSyncAlarm() {
-  setInterval(() => {
+  metricsIntervalId = setInterval(() => {
+    if (!isContextValid()) {
+      cleanupOnInvalidation();
+      return;
+    }
     if (activeSeconds > 0 || scrollMaxPercent > 0) {
-      chrome.runtime.sendMessage({
+      safeSendMessage({
         action: 'syncMetrics',
         domain,
         activeSeconds,
@@ -455,7 +566,7 @@ function startMetricsSyncAlarm() {
 }
 
 // Run scrapers if Chrome context is valid
-if (typeof chrome !== 'undefined' && chrome.runtime) {
+if (isContextValid()) {
   registerInteractionListeners();
   registerScrollListener();
   startMetricsSyncAlarm();
