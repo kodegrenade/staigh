@@ -30,8 +30,17 @@ export async function getAuthToken(interactive = false) {
       return;
     }
 
+    const flowOptions = {
+      url: authUrl,
+      interactive,
+    };
+    if (!interactive) {
+      flowOptions.abortOnLoadForNonInteractive = false;
+      flowOptions.timeoutMsForNonInteractive = 8000;
+    }
+
     chrome.identity.launchWebAuthFlow(
-      { url: authUrl, interactive },
+      flowOptions,
       async (redirectUrl) => {
         if (chrome.runtime.lastError) {
           reject(new Error(chrome.runtime.lastError.message));
@@ -324,7 +333,17 @@ export function mergeLogs(localLogs, allRemoteLogs, localDeviceId) {
  */
 export async function runSyncCycle(interactive = false) {
   try {
-    const token = await getAuthToken(interactive);
+    let token;
+    try {
+      token = await getAuthToken(interactive);
+    } catch (authError) {
+      if (!interactive) {
+        console.info('[Staigh Sync] Background sync deferred (user interaction required for token renewal).');
+        return { success: false, deferred: true, reason: authError.message };
+      }
+      throw authError;
+    }
+
     const deviceId = await getOrCreateDeviceId();
     const localSettings = await getSettings();
 
