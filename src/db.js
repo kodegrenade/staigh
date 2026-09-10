@@ -42,13 +42,16 @@ function getDB() {
  * @param {boolean} isFullUrl - Whether target is a full URL or root domain
  */
 export async function incrementTime(date, target, domain, additionalSeconds, isFullUrl, activeSeconds = 0, scrollMaxPercent = 0, contextSwitches = 0) {
+  const currentSettings = await getSettings();
+  const localDeviceId = currentSettings.deviceId || 'local';
   const db = await getDB();
+
   return new Promise((resolve, reject) => {
     const transaction = db.transaction([STORE_NAME], 'readwrite');
     const store = transaction.objectStore(STORE_NAME);
     const getRequest = store.get([date, target]);
 
-    getRequest.onsuccess = async () => {
+    getRequest.onsuccess = () => {
       const record = getRequest.result || {
         date,
         target,
@@ -59,9 +62,6 @@ export async function incrementTime(date, target, domain, additionalSeconds, isF
         scrollMaxPercent: 0,
         contextSwitches: 0,
       };
-
-      const currentSettings = await getSettings();
-      const localDeviceId = currentSettings.deviceId || 'local';
 
       // Initialize maps
       if (!record.deviceSeconds) record.deviceSeconds = {};
