@@ -196,6 +196,10 @@ function broadcastTimeSync(domain, totalSeconds) {
           chrome.tabs.sendMessage(tab.id, {
             action: 'syncTime',
             secondsToday: totalSeconds,
+          }, () => {
+            if (chrome.runtime.lastError) {
+              // Suppress error if tab is closed or has no content script
+            }
           });
         }
       } catch {
@@ -214,40 +218,44 @@ async function flushCurrentTime() {
 
   if (elapsedSeconds <= 0) return;
 
-  // Reload settings cache to verify live configuration
-  settings = await getSettings();
+  try {
+    // Reload settings cache to verify live configuration
+    settings = await getSettings();
 
-  if (settings.isPaused || isUserIdle || !isChromeFocused) {
-    return;
+    if (settings.isPaused || isUserIdle || !isChromeFocused) {
+      return;
+    }
+
+    const today = getLocalDateString();
+    if (today !== currentTrackingDate) {
+      todayTimes = {};
+      currentTrackingDate = today;
+    }
+
+    const isFullUrl = activeTarget !== activeDomain;
+
+    // Save active target stats
+    todayTimes[activeTarget] = (todayTimes[activeTarget] || 0) + elapsedSeconds;
+    await incrementTime(today, activeTarget, activeDomain, elapsedSeconds, isFullUrl);
+
+    // If tracking a full URL, also aggregate to root domain
+    let totalDomainSeconds = todayTimes[activeDomain] || 0;
+    if (isFullUrl) {
+      todayTimes[activeDomain] = (todayTimes[activeDomain] || 0) + elapsedSeconds;
+      await incrementTime(today, activeDomain, activeDomain, elapsedSeconds, false);
+      totalDomainSeconds = todayTimes[activeDomain];
+    } else {
+      totalDomainSeconds = todayTimes[activeTarget];
+    }
+
+    // Broadcast sync updates to open tabs on this domain
+    broadcastTimeSync(activeDomain, totalDomainSeconds);
+
+    // Check limit threshold
+    checkDailyLimit(activeDomain, totalDomainSeconds);
+  } catch (err) {
+    console.error('Failed to flush tracking time:', err);
   }
-
-  const today = getLocalDateString();
-  if (today !== currentTrackingDate) {
-    todayTimes = {};
-    currentTrackingDate = today;
-  }
-
-  const isFullUrl = activeTarget !== activeDomain;
-
-  // Save active target stats
-  todayTimes[activeTarget] = (todayTimes[activeTarget] || 0) + elapsedSeconds;
-  await incrementTime(today, activeTarget, activeDomain, elapsedSeconds, isFullUrl);
-
-  // If tracking a full URL, also aggregate to root domain
-  let totalDomainSeconds = todayTimes[activeDomain] || 0;
-  if (isFullUrl) {
-    todayTimes[activeDomain] = (todayTimes[activeDomain] || 0) + elapsedSeconds;
-    await incrementTime(today, activeDomain, activeDomain, elapsedSeconds, false);
-    totalDomainSeconds = todayTimes[activeDomain];
-  } else {
-    totalDomainSeconds = todayTimes[activeTarget];
-  }
-
-  // Broadcast sync updates to open tabs on this domain
-  broadcastTimeSync(activeDomain, totalDomainSeconds);
-
-  // Check limit threshold
-  checkDailyLimit(activeDomain, totalDomainSeconds);
 }
 
 function checkDailyLimit(domain, totalSeconds) {
@@ -349,6 +357,10 @@ chrome.storage.onChanged.addListener(async (changes, namespace) => {
           chrome.tabs.sendMessage(tab.id, {
             action: 'settingsChanged',
             settings,
+          }, () => {
+            if (chrome.runtime.lastError) {
+              // Suppress error if tab is closed or has no content script
+            }
           });
         } catch {
           // Ignored
@@ -431,6 +443,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     action: 'snoozeApplied',
                     snoozeCount: nextCount,
                     limitMinutes: newLimitMinutes,
+                  }, () => {
+                    if (chrome.runtime.lastError) {
+                      // Suppress error if tab is closed or has no content script
+                    }
                   });
                 }
               } catch {
